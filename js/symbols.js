@@ -136,7 +136,7 @@ const NEWS_SYMBOL = {
   id: "news",
   name: "Breaking News",
   photo: "images/symbols/news.png",
-  weight: 2.6,
+  weight: 1.2,             // news lands on about 1 spin in 4
   isNews: true,
 };
 

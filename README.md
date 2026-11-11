@@ -166,8 +166,8 @@ Open `js/news-events.js`. Each event looks like this:
 | Make the reels bigger or smaller | `--row-height` near the top of `style.css` |
 
 **Current odds** (150,000 simulated games): the first 4 spins always win. After that,
-about 43% of spins win, and about 1 in 5 wins is smaller than that spin's compute bill.
-Almost half of all spins have breaking news, and about 3 in 4 of the news after the hot
+about 46% of spins win, and about 1 in 4 wins is smaller than that spin's compute bill.
+About 1 in 4 spins has breaking news, and about 3 in 4 of the news after the hot
 start is bad. The news plays out roughly in date order (older stories early, recent ones late), and a
 story doesn't repeat until all of its kind have been shown. The Jensen spy story is always
 the last story: it hits near the end of almost every game (the rest pop first), and no news

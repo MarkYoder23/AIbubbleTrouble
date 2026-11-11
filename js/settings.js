@@ -24,7 +24,7 @@ const SETTINGS = {
 
   // The compute bill: every spin costs this, win or lose (0.08 = 8%).
   // Small wins are still celebrated even when they're smaller than the bill.
-  computeBill: 0.1,
+  computeBill: 0.112,
 
   // The bubble (0% to 100%)
   bubbleGrowthPerSpin: 2,     // Every spin inflates the bubble this much.
