@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Bubble Trouble</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <main>
+
+    <!-- ============ 1. START SCREEN ============ -->
+    <section class="screen active" id="startScreen">
+      <!-- Background video: aerial view of the Lake Mariner data center (videos/data-center.mp4) -->
+      <video class="intro-video" src="videos/data-center.mp4" autoplay muted loop playsinline></video>
+      <div class="panel">
+        <h1 class="logo">AI <span>Bubble</span> Trouble</h1>
+        <p class="tagline">Ride the hype. Cash out before it pops.</p>
+
+        <h2 class="rules-title">How to Play</h2>
+        <ol class="rules">
+          <li>Your <strong>$1</strong> buys <strong>10 spins</strong>.</li>
+          <li>Match <strong>3 or more in a row</strong> from the left to grow your company.</li>
+          <li>Don't let the <strong>bubble pop</strong>.</li>
+          <li>Finish above <strong>$100B</strong> to cash out or double down.</li>
+        </ol>
+
+        <label class="checkbox">
+          <input type="checkbox" id="paidCheckbox">
+          <span class="box"></span>
+          I have submitted my $1 Human Dollar
+        </label>
+
+        <button class="btn" id="startButton" disabled>Start Game</button>
+      </div>
+    </section>
+
+
+    <!-- ============ 2. GAME SCREEN ============ -->
+    <section class="screen" id="gameScreen">
+      <div class="machine">
+
+        <!-- Top: the latest breaking news -->
+        <div class="headline" id="headline"></div>
+
+        <!-- Middle: the 5 × 3 grid. Winning lines are drawn on top. -->
+        <div class="reels" id="reels">
+          <div class="reel-box"><div class="reel" id="reel0"></div></div>
+          <div class="reel-box"><div class="reel" id="reel1"></div></div>
+          <div class="reel-box"><div class="reel" id="reel2"></div></div>
+          <div class="reel-box"><div class="reel" id="reel3"></div></div>
+          <div class="reel-box"><div class="reel" id="reel4"></div></div>
+          <svg class="payline-layer" id="paylineLayer"></svg>
+        </div>
+
+        <!-- What just happened -->
+        <p class="message" id="message"></p>
+
+        <!-- Bottom: numbers on the left, SPIN in the middle, win and bubble on the right -->
+        <footer class="info-bar">
+          <div class="info spins-box">
+            <span class="label">Spins left</span>
+            <span class="value" id="spinsLeft">10</span>
+          </div>
+          <!-- The big number only ever goes up. The real valuation is the small one below it. -->
+          <div class="info valuation-box">
+            <span class="label">Total raised</span>
+            <span class="value" id="totalRaised">$0</span>
+          </div>
+
+          <div class="spin-controls" id="spinControls">
+            <button class="spin" id="spinButton">SPIN</button>
+          </div>
+
+          <div class="info win-box">
+            <span class="label">Win</span>
+            <span class="value win-value" id="lastWin">$0</span>
+            <span class="streak" id="streak"></span>
+          </div>
+
+          <!-- The Bubble. It grows each spin and explodes across the screen when it pops. -->
+          <div class="info bubble-slot">
+            <div class="bubble" id="bubble">
+              <span id="bubblePercent">0%</span>
+              <small>BUBBLE</small>
+            </div>
+          </div>
+        </footer>
+
+        <!-- Breaking news pop-up (shows when a NEWS symbol lands) -->
+        <div class="news-popup hidden" id="newsPopup">
+          <div class="news-tag" id="newsTag"></div>
+          <div class="news-picture" id="newsPicture"></div>
+          <h2 class="news-headline" id="newsHeadline"></h2>
+          <p class="news-effect" id="newsEffect"></p>
+          <p class="news-when" id="newsWhen"></p>
+          <div class="news-timer"><div id="newsTimer"></div></div>
+        </div>
+
+        <!-- Big win banner (LINE GO UP ... AGI ACHIEVED) -->
+        <div class="win-banner" id="winBanner"></div>
+
+        <!-- Final round pop-up (hidden until the last spin).
+             Double Down is the big, obvious choice. Cash Out is small.
+             The odds are hidden. If time runs out, it doubles down for you. -->
+        <div class="final-round hidden" id="finalRound">
+          <div class="final-title">FINAL ROUND</div>
+          <p class="final-pitch" id="finalPitch"></p>
+          <button class="btn dare" id="doubleDownButton">DOUBLE DOWN<small>Go for $5</small></button>
+          <p class="social-proof" id="socialProof"></p>
+          <div class="decision-timer"><div id="decisionTimer"></div></div>
+          <p class="decision-note" id="decisionNote"></p>
+          <button class="cash-out-link" id="cashOutButton">or cash out for $1</button>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ============ 3. END SCREEN ============ -->
+    <section class="screen" id="endScreen">
+      <div class="panel">
+        <div class="end-icon" id="endIcon"></div>
+        <h1 class="end-title" id="endTitle"></h1>
+        <p class="end-text" id="endText"></p>
+        <div class="reveal" id="reveal"></div>
+        <div class="ticket hidden" id="ticket"></div>
+        <button class="btn" id="resetButton">Reset</button>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- Layers for the pop and money rain effects -->
+  <div class="flash" id="flash"></div>
+  <div class="effects" id="effects"></div>
+  <div class="burst-banner" id="burstBanner">THE BUBBLE HAS BURST</div>
+
+
+  <!-- Scripts: order matters, each file uses the ones above it -->
+  <script src="js/drawings.js"></script>      <!-- built-in pictures (no need to edit) -->
+  <script src="js/settings.js"></script>      <!-- the numbers -->
+  <script src="js/symbols.js"></script>       <!-- the reel symbols and their photos -->
+  <script src="js/news-events.js"></script>   <!-- news events wording -->
+  <script src="js/game.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/screen.js"></script>
+</body>
+</html>
