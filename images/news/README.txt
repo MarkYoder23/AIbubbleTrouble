@@ -21,7 +21,7 @@ Any event without a photo just shows the headline.
   authors-settlement.jpg    Anthropic's $1.5B authors settlement
   mit-study.jpg             MIT study on AI pilots
   chip-crash.jpg            Nasdaq chip crash
-  jensen-spy.jpg            Jensen spy report (always hits near the end)
+  jensen-spy.jpg            Jensen affair with alleged spy (always hits near the end)
 
 Tips
 - Wide photos work best here (e.g. 1200 x 675).

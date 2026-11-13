@@ -20,11 +20,19 @@
 
         <h2 class="rules-title">How to Play</h2>
         <ol class="rules">
-          <li>Your <strong>$1</strong> buys <strong>10 spins</strong>.</li>
-          <li>Match <strong>3 or more in a row</strong> from the left to grow your company.</li>
-          <li>Don't let the <strong>bubble pop</strong>.</li>
-          <li>Finish above <strong>$100B</strong> to cash out or double down.</li>
+          <li>$1 buys 10 spins. Your company starts at $100B.</li>
+          <li>Match 3 or more from the left to raise your valuation.</li>
+          <li>Every spin grows the bubble. If it pops, you lose.</li>
+          <li>After your last spin, your valuation decides what you get:</li>
         </ol>
+
+        <!-- What each ending pays -->
+        <table class="payouts">
+          <tr><th colspan="2">HOW YOU GET PAID</th></tr>
+          <tr class="lose"><td>Finish below $100B, or the bubble pops</td><td>LOSE YOUR $1</td></tr>
+          <tr class="win"><td>Finish above $100B</td><td>GET $1 BACK</td></tr>
+          <tr class="win"><td>Hit $1 TRILLION</td><td>WIN $5</td></tr>
+        </table>
 
         <label class="checkbox">
           <input type="checkbox" id="paidCheckbox">
@@ -39,6 +47,13 @@
 
     <!-- ============ 2. GAME SCREEN ============ -->
     <section class="screen" id="gameScreen">
+      <!-- Scrolling stock tickers on all four edges. screen.js fills and moves them;
+           they speed up as the game goes on. -->
+      <div class="ticker ticker-top"><div class="ticker-track"></div></div>
+      <div class="ticker ticker-bottom"><div class="ticker-track"></div></div>
+      <div class="ticker ticker-left"><div class="ticker-track"></div></div>
+      <div class="ticker ticker-right"><div class="ticker-track"></div></div>
+
       <div class="machine">
 
         <!-- Top: the latest breaking news -->
@@ -46,12 +61,29 @@
 
         <!-- Middle: the 5 × 3 grid. Winning lines are drawn on top. -->
         <div class="reels" id="reels">
+          <!-- Left: the bubble meter. It fills as the bubble grows; full = it pops. -->
+          <div class="meter bubble-meter" id="bubbleMeter">
+            <span class="meter-label">Bubble</span>
+            <div class="meter-track"><div class="meter-fill" id="bubbleFill"></div></div>
+            <span class="meter-value" id="bubbleMeterValue">0%</span>
+            <!-- Hidden until the bubble pops: then it swells out of the meter and covers the screen -->
+            <div class="bubble" id="bubble"></div>
+          </div>
+          <!-- Right: the valuation meter. Winnings fly into it. Finish above the BREAK EVEN line. -->
+          <div class="meter goal-meter" id="goalMeter">
+            <span class="meter-label">Valuation</span>
+            <div class="meter-track">
+              <div class="meter-fill" id="goalFill"></div>
+              <div class="jackpot-mark">Jackpot</div>
+              <div class="goal-line"><span>Break even</span></div>
+            </div>
+            <span class="meter-value" id="goalValue">$100B</span>
+          </div>
           <div class="reel-box"><div class="reel" id="reel0"></div></div>
           <div class="reel-box"><div class="reel" id="reel1"></div></div>
           <div class="reel-box"><div class="reel" id="reel2"></div></div>
           <div class="reel-box"><div class="reel" id="reel3"></div></div>
           <div class="reel-box"><div class="reel" id="reel4"></div></div>
-          <svg class="payline-layer" id="paylineLayer"></svg>
         </div>
 
         <!-- What just happened -->
@@ -63,39 +95,46 @@
             <span class="label">Spins left</span>
             <span class="value" id="spinsLeft">10</span>
           </div>
-          <!-- The big number only ever goes up. The real valuation is the small one below it. -->
-          <div class="info valuation-box">
-            <span class="label">Total raised</span>
-            <span class="value" id="totalRaised">$0</span>
-          </div>
 
           <div class="spin-controls" id="spinControls">
             <button class="spin" id="spinButton">SPIN</button>
+            <button class="auto" id="autoButton">AUTO<br>SPIN</button>
           </div>
 
-          <div class="info win-box">
-            <span class="label">Win</span>
-            <span class="value win-value" id="lastWin">$0</span>
-            <span class="streak" id="streak"></span>
+          <!-- A small chart of the valuation, one bar per spin -->
+          <div class="spin-chart">
+            <span class="spin-chart-label">VALUATION / SPIN</span>
+            <div class="spin-chart-bars" id="spinChart"></div>
           </div>
 
-          <!-- The Bubble. It grows each spin and explodes across the screen when it pops. -->
-          <div class="info bubble-slot">
-            <div class="bubble" id="bubble">
-              <span id="bubblePercent">0%</span>
-              <small>BUBBLE</small>
-            </div>
+          <!-- Not shown any more (the valuation meter replaced them), but the code still
+               keeps count: Total Raised appears on the end screen. -->
+          <div class="hidden">
+            <span id="totalRaised">$0</span>
+            <span id="lastWin">$0</span>
+            <span id="streak"></span>
           </div>
         </footer>
 
-        <!-- Breaking news pop-up (shows when a NEWS symbol lands) -->
+        <!-- Breaking news card: pops up in the middle when a NEWS symbol lands, then slides
+             up and fades away. It never stops the game: read it or keep spinning. -->
+        <div class="news-card" id="newsCard">
+          <div class="news-card-picture" id="newsCardPicture"></div>
+          <div class="news-card-text">
+            <div class="news-card-tag"><span class="news-dot">!</span> Breaking news</div>
+            <h2 class="news-card-headline" id="newsCardHeadline"></h2>
+            <p class="news-card-effect" id="newsCardEffect"></p>
+          </div>
+        </div>
+
+        <!-- Full-screen breaking news pop-up (only for stories marked fullScreen: the Jensen finale) -->
         <div class="news-popup hidden" id="newsPopup">
-          <div class="news-tag" id="newsTag"></div>
+          <!-- The news symbol (so it's clear where the story came from), the photo,
+               the headline and what it does -->
+          <span class="news-dot news-icon">!</span>
           <div class="news-picture" id="newsPicture"></div>
           <h2 class="news-headline" id="newsHeadline"></h2>
           <p class="news-effect" id="newsEffect"></p>
-          <p class="news-when" id="newsWhen"></p>
-          <div class="news-timer"><div id="newsTimer"></div></div>
         </div>
 
         <!-- Big win banner (LINE GO UP ... AGI ACHIEVED) -->
@@ -104,15 +143,6 @@
         <!-- Final round pop-up (hidden until the last spin).
              Double Down is the big, obvious choice. Cash Out is small.
              The odds are hidden. If time runs out, it doubles down for you. -->
-        <div class="final-round hidden" id="finalRound">
-          <div class="final-title">FINAL ROUND</div>
-          <p class="final-pitch" id="finalPitch"></p>
-          <button class="btn dare" id="doubleDownButton">DOUBLE DOWN<small>Go for $5</small></button>
-          <p class="social-proof" id="socialProof"></p>
-          <div class="decision-timer"><div id="decisionTimer"></div></div>
-          <p class="decision-note" id="decisionNote"></p>
-          <button class="cash-out-link" id="cashOutButton">or cash out for $1</button>
-        </div>
 
       </div>
     </section>
@@ -120,6 +150,15 @@
 
     <!-- ============ 3. END SCREEN ============ -->
     <section class="screen" id="endScreen">
+      <!-- The $5 win: a single money photo behind the result (shown instead of the slideshow). -->
+      <img class="end-money" src="images/backgrounds/money.jpg" alt="">
+      <!-- Slideshow behind the result: data center photos fade from one to the next.
+           To add a photo, copy a line and change the file name (and update style.css). -->
+      <div class="end-slideshow">
+        <img src="images/backgrounds/data-center.jpg" alt="">
+        <img src="images/backgrounds/data-center-2.jpg" alt="">
+        <img src="images/backgrounds/data-center-3.jpg" alt="">
+      </div>
       <div class="panel">
         <div class="end-icon" id="endIcon"></div>
         <h1 class="end-title" id="endTitle"></h1>
@@ -137,6 +176,16 @@
   <div class="flash" id="flash"></div>
   <div class="effects" id="effects"></div>
   <div class="burst-banner" id="burstBanner">THE BUBBLE HAS BURST</div>
+
+  <!-- The bubble pop: red floods the screen out of the bubble meter, and the
+       valuation counts down to $0 in huge numbers -->
+  <div class="flood" id="flood">
+    <div class="crash">
+      <div class="crash-label">Valuation</div>
+      <div class="crash-number" id="crashNumber">$0</div>
+      <div class="crash-note">The bubble popped</div>
+    </div>
+  </div>
 
 
   <!-- Scripts: order matters, each file uses the ones above it -->

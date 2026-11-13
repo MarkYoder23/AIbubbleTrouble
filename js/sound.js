@@ -51,6 +51,7 @@ const Sound = {
     osc.connect(gain).connect(this.audio.destination);
     osc.start(now);
     osc.stop(now + length + 0.05);
+    return osc;
   },
 
   // A burst of static that fades out (used for the pop)
@@ -76,11 +77,18 @@ const Sound = {
   // ----- The game's sounds -----
 
   // Clicking while the reels spin. Gets faster and higher as the bubble grows.
+  spinningTicks: [],
   reelsSpinning(seconds, bubble) {
     const gap = 0.08 - bubble * 0.0004;
+    this.spinningTicks = [];
     for (let t = 0; t < seconds; t += gap) {
-      this.beep(500 + Math.random() * 400 + bubble * 4, 0.03, "square", 0.025, t);
+      this.spinningTicks.push(this.beep(500 + Math.random() * 400 + bubble * 4, 0.03, "square", 0.025, t));
     }
+  },
+  // Cut the spinning ticks short (when the player slams the reels to a stop)
+  stopSpinning() {
+    this.spinningTicks.forEach(osc => { try { osc && osc.stop(); } catch (e) {} });
+    this.spinningTicks = [];
   },
 
   reelStops()    { this.beep(160, 0.12, "triangle", 0.15); },
@@ -111,6 +119,12 @@ const Sound = {
     this.beep(180, 0.9, "square", 0.04, 0, 1400);
   },
 
+  // One little bubble popping (a quick rising "blip"), slightly different each time
+  bubblePop() {
+    const pitch = 500 + Math.random() * 300;
+    this.beep(pitch, 0.06, "sine", 0.12, 0, pitch * 2.2);
+  },
+
   pop() {
     this.beep(900, 0.06, "sine", 0.3);
     this.crash(1.4, 0.5, 0.03);
@@ -135,6 +149,30 @@ const Sound = {
   },
 
   chaChing(delay = 0) { this.playFile("chaChing", delay); },
+
+  // The sad song that plays on the end screen when the player loses (audio/sad-song.mp3)
+  sad: null,
+  sadSong() {
+    if (!this.sad) this.sad = new Audio("audio/sad-song.mp3");
+    this.sad.currentTime = 0;
+    this.sad.volume = 0.7;
+    this.sad.play().catch(() => {});   // a missing file is fine: no song
+  },
+  stopSadSong() {
+    if (this.sad) this.sad.pause();
+  },
+
+  // The song that plays on the $5 win screen (audio/here-comes-the-money.mp3)
+  money: null,
+  moneySong() {
+    if (!this.money) this.money = new Audio("audio/here-comes-the-money.mp3");
+    this.money.currentTime = 0;
+    this.money.volume = 0.5;   // the file is loud, so this sits level with the other songs
+    this.money.play().catch(() => {});   // a missing file is fine: no song
+  },
+  stopMoneySong() {
+    if (this.money) this.money.pause();
+  },
 
   // ----- Background music: Main Street, getting louder as the game goes on -----
   music: null,

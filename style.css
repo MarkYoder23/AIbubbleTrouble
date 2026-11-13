@@ -1,7 +1,7 @@
 /* =====================================================================
    AI BUBBLE TROUBLE · STYLES
-   Black and white only. Helvetica for everything, Times New Roman
-   for news headlines. Square corners, no glows.
+   A stock-trading-terminal look: black, white, green (up) and red (down).
+   One font everywhere: VCR OSD Mono, the pixel "LED board" font.
 
    Sections:
      1. Colors, fonts and sizes
@@ -25,11 +25,16 @@
   --light-gray: #eee;
   --gray: #888;
 
-  --sans: Helvetica, "Helvetica Neue", Arial, sans-serif;       /* everything */
-  --serif: "Times New Roman", Times, serif;                     /* news headlines */
+  /* One font for everything: VCR OSD Mono (fonts/vcr-osd-mono.ttf).
+     Both names point at it; they are left over from when there were two fonts. */
+  --sans: "VCR OSD Mono", "Courier New", monospace;
+  --serif: "VCR OSD Mono", "Courier New", monospace;
+  --up: #39ff14;     /* green: up, good */
+  --down: #ff3b3b;   /* red: down, bad */
 
   /* How big one symbol is. 250px = space for everything else on the screen. */
-  --row-height: clamp(70px, calc((100vh - 250px) / 3), 330px);
+  --ticker: 22px;   /* how thick the stock tickers around the edge are */
+  --row-height: clamp(70px, min(calc((100vh - 225px) / 3), calc((100vw - 520px) / 5)), 340px);   /* also leaves room at the sides for the two meters */
   --gap: 10px;              /* the white space between symbols */
 }
 
@@ -39,7 +44,7 @@
 
 body {
   min-height: 100vh;
-  font-family: var(--sans);
+  font-family: var(--serif);
   color: var(--black);
   background: var(--white);
   overflow-x: hidden;
@@ -59,12 +64,16 @@ main {
 
 .hidden { display: none !important; }
 
+@font-face { font-family: "VCR OSD Mono"; src: url("fonts/vcr-osd-mono.ttf") format("truetype"); }
+/* The font comes in one weight, so the browser is told not to fake a bold or an italic */
+body { font-synthesis: none; }
+
 
 /* ---------- 3. Buttons ---------- */
 /* Default: black with white text. Add "outline" for white with black text. */
 .btn {
   padding: 14px 36px;
-  font-family: var(--sans);
+  font-family: var(--serif);
   font-size: 1.3rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -86,26 +95,33 @@ main {
 /* ---------- 4. Start and end screens ---------- */
 .panel {
   width: 100%;
-  max-width: 580px;
-  padding: 32px 28px;
+  max-width: 760px;
+  padding: 24px 28px;
   text-align: center;
   background: var(--white);
 }
 
-/* The title uses the Bubble Gum font (fonts/bubble-gum.ttf) */
-@font-face { font-family: "Bubble Gum"; src: url("fonts/bubble-gum.ttf") format("truetype"); }
-.logo { font-family: "Bubble Gum", var(--sans); font-size: clamp(3.4rem, 11vw, 6.6rem); font-weight: 400; line-height: 1.05; }
+.logo { font-family: var(--sans); font-size: clamp(2.6rem, 7vw, 4.6rem); font-weight: 400; line-height: 1.05; text-transform: uppercase; }
 .logo span { display: inline-block; padding: 0 8px; color: var(--white); background: var(--black); }
 
-.tagline     { margin: 12px 0 22px; font-family: var(--serif); font-size: 1.25rem; font-style: italic; }
-.rules-title { margin-bottom: 10px; font-size: 0.9rem; letter-spacing: 3px; text-transform: uppercase; }
+.tagline     { margin: 10px 0 22px; font-family: var(--serif); font-size: 1.25rem; }
+.rules-title { margin-bottom: 10px; font-family: var(--sans); font-size: 0.9rem; letter-spacing: 3px; text-transform: uppercase; }
 .rules {
-  margin-bottom: 24px;
+  margin-bottom: 14px;
   padding: 4px 0 4px 40px;
   text-align: left;
-  line-height: 1.5;
+  font-size: 1.1rem;
+  line-height: 1.35;
 }
-.rules li { margin: 10px 0; }
+.rules li { margin: 5px 0; }
+/* The three ways a game can end, and what each one pays */
+.payouts { width: 100%; margin: 0 0 18px; border-collapse: collapse; font-size: 1.05rem; text-align: left; }
+.payouts th { padding: 0 0 4px; font-weight: 400; font-size: 0.8rem; letter-spacing: 3px; text-align: center; }
+.payouts td { padding: 7px 10px; border: 2px solid currentColor; }
+.payouts td:last-child { text-align: right; white-space: nowrap; }
+.payouts .win  td:last-child { color: var(--up); }
+.payouts .lose td:last-child { color: var(--down); }
+#startScreen .payouts td { background: rgba(0, 0, 0, 0.55); }
 
 /* The "I have submitted my $1" checkbox */
 .checkbox {
@@ -148,17 +164,39 @@ body:has(#startScreen.active) { background: #1d2a33; }
 
 /* End screen */
 .end-icon  { margin-bottom: 6px; font-size: 5rem; }
-.end-title { margin-bottom: 10px; font-size: clamp(2rem, 8vw, 3rem); font-weight: 700; }
+.end-title { margin-bottom: 10px; font-size: clamp(2.2rem, 8vw, 3.4rem); font-weight: 400; }
 .end-text  { margin-bottom: 22px; font-size: 1.1rem; line-height: 1.5; }
-/* End screen: the data center photo fills the page behind the result card.
-   To use a different photo, replace images/backgrounds/data-center.jpg. */
-body:has(#endScreen.active) {
-  background: #333 url("images/backgrounds/data-center.jpg") center / cover no-repeat fixed;
+/* End screen: a slideshow of data center photos behind the result card.
+   Each photo shows for 5 seconds, then fades into the next (15 seconds for all 3).
+   Adding a 4th photo? Add it in index.html, change 15s to 20s, and give it a 15s delay. */
+body:has(#endScreen.active) { background: #333; }
+.end-slideshow { position: fixed; inset: 0; z-index: -1; overflow: hidden; }
+.end-slideshow img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  animation: slideshow 15s linear infinite;
 }
-#endScreen.won .end-icon { animation: bounce 0.8s ease-in-out infinite alternate; }
+.end-slideshow img:nth-child(2) { animation-delay: 5s; }
+.end-slideshow img:nth-child(3) { animation-delay: 10s; }
+@keyframes slideshow {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }   /* fade in over about a second */
+  33%  { opacity: 1; }
+  41%  { opacity: 0; }   /* fade out while the next one fades in */
+  100% { opacity: 0; }
+}
+
+/* The $5 win swaps the data center slideshow for the money photo */
+.end-money { display: none; position: fixed; inset: 0; z-index: -1; width: 100%; height: 100%; object-fit: cover; }
+#endScreen.jackpot .end-money { display: block; }
+#endScreen.jackpot .end-slideshow { display: none; }
+
 #endScreen.lost .panel   { color: var(--white); background: var(--black); }
 #endScreen.lost .btn     { color: var(--black); background: var(--white); border-color: var(--white); }
-@keyframes bounce { to { transform: translateY(-12px); } }
 
 /* Cash-out ticket */
 .ticket {
@@ -169,19 +207,44 @@ body:has(#endScreen.active) {
   border: 2px dashed var(--black);
 }
 .ticket-head { padding-bottom: 8px; margin-bottom: 8px; font-weight: 700; text-align: center; border-bottom: 2px dashed var(--black); }
-.ticket-row  { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 0.9rem; }
+.ticket-row  { font-family: var(--sans); display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 0.9rem; }
 .ticket-foot { padding-top: 8px; margin-top: 8px; font-size: 0.8rem; text-align: center; border-top: 2px dashed var(--black); }
 
 
 /* ---------- 5. Game screen: top bar and reels ---------- */
-/* The sky photo fills the page behind the game, darkened a touch so the white text reads.
-   --dim is how dark (0 = not at all). It only goes fully dark when the bubble pops.
-   To use a different photo, replace images/backgrounds/sky.jpg. */
-body { --dim: 0.12; }
+/* The black-and-white chip photo fills the page behind the game. --dim darkens it
+   (0 = not at all); it only goes fully dark when the bubble pops.
+   To use a different photo, replace images/backgrounds/chip-bw.jpg. */
+body { --dim: 0.55; }   /* the photo is very busy, so it is darkened to keep the text readable */
 body:has(#gameScreen.active) {
   background: linear-gradient(rgba(0, 0, 0, var(--dim)), rgba(0, 0, 0, var(--dim))),
-              #111 url("images/backgrounds/sky.jpg") center / cover no-repeat fixed;
+              #000 url("images/backgrounds/chip-bw.jpg") center / cover no-repeat fixed;
 }
+/* ----- Stock tickers on all four edges of the game screen ----- */
+#gameScreen { padding: var(--ticker); }
+.ticker {
+  position: fixed;
+  z-index: 5;
+  overflow: hidden;
+  background: var(--black);
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  line-height: var(--ticker);
+  white-space: nowrap;
+  text-shadow: none;
+}
+.ticker-top    { top: 0; left: 0; right: 0; height: var(--ticker); }
+.ticker-bottom { bottom: 0; left: 0; right: 0; height: var(--ticker); }
+.ticker-left   { left: 0; top: var(--ticker); bottom: var(--ticker); width: var(--ticker); }
+.ticker-right  { right: 0; top: var(--ticker); bottom: var(--ticker); width: var(--ticker); }
+.ticker-left, .ticker-right { writing-mode: vertical-rl; }   /* the side ones read top to bottom */
+.ticker-track { display: inline-block; will-change: transform; }
+.ticker-track span { margin: 0 14px; }
+.ticker-left .ticker-track span, .ticker-right .ticker-track span { margin: 14px 0; }
+.ticker .up   { color: var(--up); }
+.ticker .down { color: var(--down); }
+.ticker .flat { color: var(--white); }
+
 .machine {
   position: relative;
   width: 100%;              /* fills the whole screen */
@@ -190,9 +253,13 @@ body:has(#gameScreen.active) {
   color: var(--white);
   text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.6);   /* drop shadow so white text reads over the sky */
 }
-.spin, .bubble, .news-popup, .final-round, .win-banner { text-shadow: none; }
+.spin, .bubble, .news-popup, .final-round { text-shadow: none; }
 
 /* Breaking news headline across the top */
+
+/* The line of text above the reels and the one below them are switched off.
+   (Delete this rule to bring them back.) */
+.headline, .message { display: none !important; }
 
 .headline {                 /* news headline: Times New Roman */
   min-height: 2em;
@@ -210,40 +277,110 @@ body:has(#gameScreen.active) {
 
 /* The 5 reels: square symbols side by side, centered */
 .reels {
-  position: relative;       /* so the payline drawing can sit on top */
+  position: relative;
   width: fit-content;
   margin: 0 auto;
   display: flex;
   gap: 10px;
 }
+/* ----- The two meters beside the reels -----
+   Left: the bubble (white, fills toward the pop). Right: the valuation (green above
+   the GOAL line, red below it). */
+.meter {
+  position: absolute;
+  top: 3%;                  /* a little shorter than the reels, with air above and below */
+  bottom: 3%;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--sans);
+  text-shadow: none;
+}
+.bubble-meter { right: calc(100% + 78px); }   /* 78px of space between the reels and each meter */
+.goal-meter   { left:  calc(100% + 78px); }
+.meter-label { padding: 2px 6px; font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; background: var(--black); }
+.meter-value { padding: 2px 6px; font-size: 1.15rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; background: var(--black); }
+.meter-track {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  border: 3px solid var(--white);
+}
+.meter-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: var(--white);
+  transition: height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.3s;
+}
+.goal-meter .meter-fill { background: var(--up); }   /* the valuation bar is always green */
+/* JACKPOT, written across the top of the valuation meter */
+.jackpot-mark {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--white);
+  mix-blend-mode: difference;   /* stays readable when the white bar rises behind it */
+}
+/* The BREAK EVEN line, halfway up the valuation meter */
+.goal-line { position: absolute; left: -8px; right: -8px; bottom: 50%; border-top: 3px dashed var(--white); }
+.goal-line span {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: -0.6em;
+  padding: 1px 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: var(--black);
+}
+/* The meter jumps a little each time money lands in it */
+.goal-meter.bump .meter-track { animation: meter-bump 0.25s ease-out; }
+@keyframes meter-bump { 40% { transform: scale(1.12, 1.03); } }
+/* When the bubble pops, the meter breaks apart and red floods the screen (see .flood) */
+.bubble-meter.broken { animation: meter-break 0.5s ease-in forwards; }
+@keyframes meter-break {
+  30%  { transform: scale(1.25, 1.06); opacity: 1; }
+  100% { transform: scale(2.2, 1.3); opacity: 0; }
+}
+
+/* The bubble meter: always red, and it shakes as it gets close to popping */
+.bubble-meter .meter-fill { background: var(--down); }
+.bubble-meter.danger .meter-value { color: var(--down); }
+.bubble-meter.danger { animation: meter-shake 0.18s linear infinite; }
+@keyframes meter-shake {
+  25% { transform: translate(-3px, 1px) rotate(-0.6deg); }
+  50% { transform: translate(2px, -2px); }
+  75% { transform: translate(3px, 2px) rotate(0.6deg); }
+}
+@media (max-width: 1100px) { .meter { display: none; } }           /* no room on a narrow screen */
+
 .reel-box {                 /* the window you look through */
   position: relative;
   width: calc(var(--row-height) - var(--gap));   /* same as the symbol's height, so it's square */
   height: calc(var(--row-height) * 3);   /* shows all 3 rows */
-  overflow: hidden;
   background: none;         /* see-through: the chip shows behind the symbols */
 }
-/* Winning paylines drawn across the reels: a solid neon green line */
-.payline-layer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
-  pointer-events: none;
-  overflow: visible;
-}
-.payline-layer polyline {
-  fill: none;
-  stroke: #39ff14;          /* neon green */
-  stroke-width: 7;
-  stroke-linecap: square;
-  stroke-linejoin: miter;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: draw-line 0.6s ease-out forwards;
-}
-@keyframes draw-line { to { stroke-dashoffset: 0; } }
+/* The window only clips while a reel is moving (to hide the strip). Once the reels
+   land, nothing clips, so a popping circle can swell and burst without being cut off. */
+.reel-box.moving { overflow: hidden; }
+/* A win lights up every winning symbol with a neon green ring
+   (the other symbols stay as they are) */
+.symbol img { transition: opacity 0.3s; }
+.symbol.win img { outline: 6px solid var(--up); outline-offset: -6px; }   /* drawn just inside the circle, so it never gets cut off */
 
 /* Every symbol is a square. A thin white gap (--gap) separates the symbols in a reel. */
 .symbol {
@@ -264,14 +401,10 @@ body:has(#gameScreen.active) {
 
 /* The symbols are the only thing in color. Everything else is black and white,
    including emoji and news photos. */
-.news-tag, .message, .end-icon, .money { filter: grayscale(1); }   /* news photos stay in color */
 
 /* Winning symbols get a thick black frame, NEWS symbols flash */
-.symbol.win  { animation: cell-win 0.4s ease-in-out 6 alternate; }
-.symbol.news { animation: cell-news 0.3s ease-in-out 8 alternate; }   /* the NEWS symbol pulses (no box) */
+/* Winning and NEWS symbols stay still (no bobbing or pulsing) */
 .symbol.hit  { opacity: 0.35; transition: opacity 0.4s; }   /* the grid fades when Double Down loses */
-@keyframes cell-win  { to { transform: scale(1.08); } }
-@keyframes cell-news { to { transform: scale(1.12); } }
 
 /* Message under the reels */
 .message {
@@ -280,51 +413,136 @@ body:has(#gameScreen.active) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 400;
 }
-.message.big  { font-size: 1.5rem; text-decoration: underline; animation: pulse 0.5s 3; }
+.message.big  { font-size: 1.7rem; }
 .message.meh  { color: #ccc; }
-@keyframes pulse { 50% { transform: scale(1.06); } }
 
 
 /* ---------- 6. Game screen: bottom bar and SPIN button ---------- */
 /* Layout: [spins] [valuation]  [ SPIN ]  [win] [bubble] */
+/* Bottom bar: Spins Left on the left, SPIN in the exact middle, AUTO SPIN on the right,
+   evenly spaced under the reels */
 .info-bar {
   display: grid;
-  grid-template-columns: 1fr 1.6fr auto 1.2fr 1fr;
-  grid-template-areas: "spins valuation spin win bubble";
-  align-items: stretch;
-  gap: 12px;
-  padding: 8px 0 0;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas: "spins controls chart";
+  align-items: center;
+  /* as wide as the reels plus both meters, so Spins Left sits under the bubble meter
+     and the chart under the valuation meter (each meter is 78px away and 64px wide) */
+  width: calc((var(--row-height) - var(--gap)) * 5 + 40px + 2 * (78px + 64px));
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 34px 0 0;   /* space between the reels and the bar */
 }
-.spins-box     { grid-area: spins; }
-.valuation-box { grid-area: valuation; }
-.spin-controls { grid-area: spin; }
-.win-box       { grid-area: win; }
-.bubble-slot   { grid-area: bubble; }
+.spins-box     { grid-area: spins; justify-self: start; margin-left: 68px; }   /* starts at the bubble meter's right edge */
+.spin-controls { grid-area: controls; display: flex; align-items: center; gap: 72px; }   /* SPIN and AUTO SPIN as a pair, in the middle */
+.spin-chart    { grid-area: chart; justify-self: end; }
 
 .info  { display: flex; flex-direction: column; justify-content: center; padding: 6px 8px; }
-.label { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; }
-.value { font-size: 2rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.label { font-family: var(--sans); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; }
+.value { font-family: var(--sans); font-size: 2rem; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .valuation-box .value { font-size: 2.6rem; }
 .sub   { font-size: 0.8rem; color: #ccc; }
 
 /* Little animations when numbers change */
-#valuation.went-up   { animation: went-up 0.6s; }
-#valuation.went-down { animation: went-down 0.6s; }
+.valuation-box { position: relative; }
+/* Total Raised: neon green and bigger while it counts up */
+#totalRaised { display: inline-block; transition: transform 0.25s, color 0.25s; }
+#totalRaised.counting { color: var(--up); transform: scale(1.25); }
+/* The "+$12.4B" that floats up out of Total Raised */
+.money-float {
+  position: absolute;
+  left: 50%;
+  bottom: 70%;
+  font-family: var(--sans);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--up);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;              /* floats in front of the reels */
+  text-shadow: 2px 3px 0 var(--black);
+  animation: money-float 1.8s ease-out forwards;
+}
+@keyframes money-float {
+  0%   { opacity: 0; transform: translate(-50%, 20px) scale(0.7); }
+  15%  { opacity: 1; transform: translate(-50%, 0) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -110px) scale(1); }
+}
 #spinsLeft.low       { text-decoration: underline; }
-#spinsLeft.bonus     { animation: bonus-spin 0.7s; }
+/* The little valuation chart at the bottom right: one bar per spin, green if the
+   valuation rose on that spin, red if it fell. The dashed line is break-even. */
+.info-bar { position: relative; }
+.spin-chart {
+  position: relative;
+  width: 150px;
+  height: 86px;                  /* the same height as the SPIN button */
+  font-family: var(--sans);
+  text-shadow: none;
+}
+.spin-chart-label { position: absolute; left: 0; bottom: calc(100% + 4px); font-size: 0.65rem; letter-spacing: 1px; white-space: nowrap; }
+.spin-chart-bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 3px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid var(--white);
+}
+.spin-chart-bars::after {        /* the break-even line, halfway up */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 50%;
+  border-top: 2px dashed var(--white);
+  opacity: 0.7;
+}
+/* One candlestick per spin: a thin wick behind a fatter body */
+.candle { position: relative; flex: 1; max-width: 12px; height: 100%; }
+.candle i { position: absolute; left: 50%; transform: translateX(-50%); background: var(--up); }
+.candle .wick { width: 2px; }
+.candle .body { width: 7px; }
+.candle.down i { background: var(--down); }
+@media (max-width: 1100px) {
+  .spin-chart { display: none; }
+  /* no meters at this size, so the bar is only as wide as the reels */
+  .info-bar { width: calc((var(--row-height) - var(--gap)) * 5 + 40px); }
+  .spins-box { margin-left: 0; }
+}
+
+/* Spins left: big, right beside the SPIN button */
+.spins-box { align-items: center; height: 86px; padding: 0; text-align: center; }   /* the same height as the buttons, label centered over the number */
+.spins-box .label { font-size: 0.85rem; font-weight: 700; }
+.spins-box .value { font-size: 3.6rem; line-height: 1; }
 @keyframes went-up    { 30% { transform: scale(1.12); } }
 @keyframes went-down  { 30% { transform: scale(0.9); } }
-@keyframes bonus-spin { 30% { transform: scale(1.5); } }
 
 /* The big SPIN button in the middle */
-.spin-controls { display: flex; align-items: center; justify-content: center; padding: 0 10px; }
+/* AUTO: a small button beside SPIN. Black with green text while autospin is on. */
+.auto {
+  width: 160px;
+  height: 86px;
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  line-height: 1.3;
+  color: var(--white);
+  background: var(--black);
+  border: 3px solid var(--white);
+  cursor: pointer;
+  text-shadow: none;
+}
+.auto.on { color: var(--up); background: var(--black); border-color: var(--up); }
 .spin {
-  width: 280px;
-  height: 96px;
-  font-family: var(--sans);
+  width: 260px;
+  height: 86px;
+  font-family: var(--serif);
   font-size: 2.8rem;
   font-weight: 700;
   letter-spacing: 8px;
@@ -332,12 +550,10 @@ body:has(#gameScreen.active) {
   background: var(--white);
   border: none;
   cursor: pointer;
-  animation: spin-ready 0.9s ease-in-out infinite alternate;
 }
 .spin:hover:not(:disabled)  { background: var(--light-gray); }
 .spin:active:not(:disabled) { transform: translateY(3px); }
 .spin:disabled { animation: none; color: #ccc; background: rgba(255, 255, 255, 0.2); border-color: var(--light-gray); box-shadow: none; cursor: not-allowed; }
-@keyframes spin-ready { to { transform: scale(1.04); } }   /* a gentle "press me" pulse */
 
 
 /* ---------- 7. Pop-ups: breaking news and final round ---------- */
@@ -352,26 +568,110 @@ body:has(#gameScreen.active) {
   box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.65);
 }
 
-/* Breaking news, styled like a newspaper front page */
+/* The news card (black text on white): pops up in the middle of the reels, holds, then slides up and fades
+   away. The game keeps going underneath it. */
+.news-card {
+  position: fixed;
+  top: 42%;
+  left: 50%;
+  z-index: 60;                          /* in front of the money rain and win text */
+  width: min(calc((var(--row-height) - var(--gap)) * 5 + 40px), 96%);   /* as wide as the reels */
+  height: 26vh;
+  display: flex;
+  align-items: stretch;
+  color: var(--black);
+  background: var(--white);
+  /* A black outline and a hard black drop shadow, like the win text, so the card sticks out */
+  box-shadow: 0 0 0 4px var(--black), 10px 10px 0 var(--black);
+  text-align: left;
+  text-shadow: none;
+  pointer-events: none;                 /* clicks go straight through to the game */
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+.news-card.show { animation: news-card 3s linear forwards; }   /* screen.js sets the real length */
+/* It starts tiny, on top of the NEWS symbol that triggered it (--from-x / --from-y are set
+   by screen.js), and grows out of it into the middle. Then it rises at a steady speed and
+   only starts to fade once it's near the top of the screen. */
+@keyframes news-card {
+  0%   { opacity: 1; transform: translate(calc(-50% + var(--from-x, 0px)), calc(-50% + var(--from-y, 0px))) scale(0.04); animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1); }
+  14%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  75%  { opacity: 1; transform: translate(-50%, calc(-50% - 27vh)); }   /* its top edge reaches the top of the screen */
+  100% { opacity: 0; transform: translate(-50%, calc(-50% - 36vh)); }
+}
+.news-card-picture { flex: none; height: 100%; aspect-ratio: 16 / 9; }
+.news-card-picture:empty { display: none; }
+.news-card-picture img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.news-card-text { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 10px 24px; min-width: 0; }
+.news-card-tag { display: flex; align-items: center; gap: 8px; font-family: var(--sans); font-size: 0.75rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+.news-card-tag .news-dot { width: 24px; height: 24px; font-size: 16px; }
+.news-card-headline { font-family: var(--serif); font-size: clamp(1.2rem, 2.3vw, 2rem); font-weight: 400; line-height: 1.1; }
+.news-card-effect { font-family: var(--sans); font-size: clamp(1rem, 1.6vw, 1.4rem); font-weight: 700; letter-spacing: 1px; }
+/* The effect sits on a block of color so it reads on the white card:
+   black on neon green for good news, white on red for bad */
+.news-card-effect { align-self: flex-start; padding: 3px 8px; }
+.news-card.good .news-card-effect { color: var(--black); background: var(--up); }
+.news-card.bad  .news-card-effect { color: var(--white); background: var(--down); }
+/* The news effect flashing over Total Raised */
+.money-float.good, .money-float.bad { bottom: 135%; }   /* higher up, so it doesn't sit on a "+$12B" win */
+.money-float.good { color: var(--up); }
+.money-float.bad  { color: var(--down); }
+
+/* Breaking news: black text on white. It grows out of the NEWS symbol that
+   triggered it (screen.js sets --from-x / --from-y to where that symbol is). */
 .news-popup {
   z-index: 8;
   width: min(1000px, 94%);
-  padding: 18px 30px 14px;
+  padding: 18px 30px 20px;
+  color: var(--black);
+  background: var(--white);
   cursor: pointer;
-  animation: news-in 0.45s ease-out;
+  animation: news-from-symbol 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-@keyframes news-in { from { transform: translate(-50%, -50%) scale(0.4) rotate(-8deg); opacity: 0; } }
+@keyframes news-from-symbol {
+  from {
+    transform: translate(calc(-50% + var(--from-x, 0px)), calc(-50% + var(--from-y, 0px))) scale(0.08);
+    opacity: 0.4;
+  }
+}
+/* The news symbol, repeated at the top of the pop-up */
+.news-icon { width: 56px; height: 56px; margin: 0 auto 10px; font-size: 38px; }
 
-.news-tag {
-  display: inline-block;
-  margin-bottom: 10px;
-  padding: 6px 18px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: var(--white);
-  background: var(--black);
+/* The NEWS symbol: a "!" in the pixel font inside a circle.
+   Neon green for good news, red for bad news. */
+.news-dot {
+  text-shadow: none;          /* no drop shadow on the "!" */
+  letter-spacing: 0;          /* the news card's wide letter spacing would push the "!" off-center */
+  box-sizing: border-box;
+  padding: 0 0 0.096em 0.096em;   /* this font's "!" sits low and to the left of its box: this nudges it to the exact middle of the circle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: var(--sans);
+  line-height: 1;
+  color: var(--black);
+  background: var(--up);
 }
+.news-dot.bad, .bad .news-dot { color: var(--white); background: var(--down); }
+.symbol .news-dot { width: 100%; height: 100%; font-size: calc(var(--row-height) * 0.62); }
+
+/* The NEWS symbol on the reels: a soft ring ripples out of it before the story opens */
+.symbol { position: relative; }
+.symbol.news::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--gap) / 2) 0;
+  border-radius: 50%;
+  border: 3px solid var(--white);
+  pointer-events: none;
+  animation: news-ripple 0.9s ease-out 2;
+}
+@keyframes news-ripple {
+  from { transform: scale(0.95); opacity: 0.9; }
+  to   { transform: scale(1.5);  opacity: 0; }
+}
+
 
 
 /* Every news photo shows at the same size: a 16:9 box, about 40% of the screen height */
@@ -387,17 +687,12 @@ body:has(#gameScreen.active) {
 .news-headline {            /* Times New Roman, like a newspaper: huge, all caps */
   margin: 4px 0 8px;
   font-family: var(--serif);
-  font-size: clamp(2rem, 4.6vw, 3.6rem);
+  font-size: clamp(1.6rem, 3.4vw, 2.8rem);
   font-weight: 400;          /* not bold, normal capitals (as written in news-events.js) */
   line-height: 1.05;
 }
-.news-effect { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: 1px; }
-.news-when   { margin-top: 6px; font-family: var(--serif); font-size: 1rem; font-style: italic; color: #555; }
+.news-effect { font-family: var(--sans); font-size: clamp(1.4rem, 2.6vw, 2rem); font-weight: 700; letter-spacing: 1px; }
 
-/* Countdown bar until the pop-up closes */
-.news-timer { height: 5px; margin-top: 12px; background: var(--light-gray); overflow: hidden; }
-.news-timer div { height: 100%; background: var(--black); transform-origin: left; }
-.news-timer div.running { animation: countdown linear forwards; }
 @keyframes countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
 /* Final round */
@@ -409,26 +704,24 @@ body:has(#gameScreen.active) {
 }
 @keyframes slam-center { from { transform: translate(-50%, -50%) scale(1.3); opacity: 0; } }
 
-.final-title { margin-bottom: 6px; font-size: 2.2rem; font-weight: 700; letter-spacing: 6px; }
-.final-pitch { margin-bottom: 16px; font-size: 1.15rem; }
+.final-title { margin-bottom: 6px; font-size: 2.6rem; font-weight: 400; }
+.final-pitch { margin-bottom: 16px; font-size: 1.3rem; }
 
 /* Double Down: huge, black and pulsing. It's the choice the game wants you to make. */
 .dare {
   width: 100%;
   padding: 22px 20px;
   font-size: 2.4rem;
-  animation: dare-pulse 0.7s ease-in-out infinite alternate;
 }
 .dare small { font-size: 1.1rem; }
-@keyframes dare-pulse { to { transform: scale(1.04); } }
 
-.social-proof { margin-top: 10px; font-size: 1rem; font-weight: 700; }
+.social-proof { margin-top: 10px; font-family: var(--sans); font-size: 1rem; font-weight: 700; }
 
 /* The countdown bar. When it runs out, the game doubles down for you. */
 .decision-timer { height: 6px; margin-top: 14px; background: var(--light-gray); overflow: hidden; }
 .decision-timer div { height: 100%; background: var(--black); transform-origin: left; }
 .decision-timer div.running { animation: countdown linear forwards; }
-.decision-note { margin-top: 6px; font-size: 0.95rem; }
+.decision-note { margin-top: 6px; font-family: var(--sans); font-size: 0.95rem; }
 
 /* Cash Out: small, grey and easy to miss */
 .cash-out-link {
@@ -450,74 +743,68 @@ body:has(#gameScreen.active) {
   left: 50%;
   top: 42%;
   z-index: 6;
-  padding: 10px 34px;
-  font-size: clamp(2.5rem, 7vw, 5.5rem);
-  font-weight: 700;
-  letter-spacing: 4px;
+  font-family: var(--sans);    /* the LED-board font, in capitals, like a trade alert */
+  text-transform: uppercase;
+  font-size: clamp(3rem, 8.2vw, 8rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
   white-space: nowrap;
-  color: #39ff14;           /* neon green */
-  background: var(--black);
+  color: var(--white);
+  text-shadow: 0.05em 0.05em 0 var(--black), -2px -2px 0 var(--black), 2px -2px 0 var(--black), -2px 2px 0 var(--black);   /* a hard black edge, so the thin pixel letters read over faces */
   pointer-events: none;
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0);
+  transform: translate(-50%, -50%);
+  visibility: hidden;
 }
-.win-banner small { display: block; margin-top: 4px; font-size: 0.32em; letter-spacing: 3px; text-align: center; color: #ffe600; }  /* streak line: neon yellow */
-.win-banner.show { animation: win-banner 1.6s ease-out forwards; }
+.win-banner.show { visibility: visible; }
+.win-banner small { display: block; margin-top: 4px; font-size: 0.34em; letter-spacing: -0.02em; text-align: center; }  /* what matched, e.g. "Five Sam Altmans" */
+/* The win words slide in from the left, trailed by fading "echo" copies that
+   catch up and merge into the main words, then everything fades out. */
+.win-layer { display: block; opacity: 0; }
+.win-layer.echo { position: absolute; inset: 0; }
+.win-banner.show .win-layer { animation: win-slide 3.2s cubic-bezier(0.2, 0.7, 0.25, 1) forwards; }
+.win-banner.show .echo-1 { animation-delay: 0.15s; --echo: 0.45; }
+.win-banner.show .echo-2 { animation-delay: 0.3s;  --echo: 0.28; }
+.win-banner.show .echo-3 { animation-delay: 0.45s; --echo: 0.15; }
 
 /* A win streak under the WIN number */
-.streak { min-height: 1.2em; font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; }
+.streak { min-height: 1.2em; font-family: var(--sans); font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; }
 
-@keyframes win-banner {
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(2.5) rotate(-6deg); }
-  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-3deg); }
-  25%  { transform: translate(-50%, -50%) scale(1.08) rotate(-3deg); }
-  80%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-3deg); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9) rotate(-3deg); }
+@keyframes win-slide {
+  0%   { opacity: 0;                 transform: translateX(-70vw); }  /* starts off to the left */
+  8%   { opacity: var(--echo, 1); }
+  40%  { opacity: var(--echo, 1);    transform: translateX(0); }       /* slides into place (about 1.3 seconds) */
+  78%  { opacity: var(--echo, 1);    transform: translateX(0); }
+  100% { opacity: 0;                 transform: translateX(0); }       /* fades out */
 }
 
 /* "What really happened" on the end screen */
 .reveal { max-width: 420px; margin: 0 auto 22px; text-align: left; }
 .reveal-title { margin-bottom: 6px; font-family: var(--serif); font-size: 1.3rem; font-weight: 700; text-align: center; }
-.reveal-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; font-size: 1rem; }
+.reveal-row { font-family: var(--sans); display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; font-size: 1rem; }
 .reveal-note { margin-top: 10px; font-size: 0.9rem; text-align: center; opacity: 0.75; }
 
 
 /* ---------- 9. The Bubble (in the bottom bar) ---------- */
 /* It sits at the bottom of its slot and grows upward, past the top of the bar */
-.bubble-slot { position: relative; justify-content: flex-end; align-items: center; min-height: 78px; }
 
+/* The bubble that explodes: it hides in the middle of the bubble meter until the pop */
 .bubble {
-  --size: 70px;             /* screen.js changes this as the bubble grows */
   position: absolute;
-  bottom: 22px;
+  top: 50%;
   left: 50%;
-  translate: -50% 0;
-  z-index: 6;
-  width: var(--size);
-  height: var(--size);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;       /* the bubble stays round */
+  translate: -50% -50%;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
   pointer-events: none;
   background: radial-gradient(circle at 30% 28%, var(--white) 0 8%, #f4f4f4 9% 55%, #d9d9d9 100%);
-  border: 3px solid var(--black);
-  transition: width 0.9s cubic-bezier(0.3, 1.6, 0.5, 1), height 0.9s cubic-bezier(0.3, 1.6, 0.5, 1);
-  animation: bubble-wobble 3s ease-in-out infinite;
+  opacity: 0;
 }
-.bubble { color: var(--black); }   /* black text on the white bubble */
-.bubble span  { font-size: calc(var(--size) * 0.28); font-weight: 700; line-height: 1; }
-.bubble small { font-size: max(9px, calc(var(--size) * 0.1)); font-weight: 700; letter-spacing: 2px; }
 
-@keyframes bubble-wobble {
-  33% { transform: scale(1.04, 0.96); }
-  66% { transform: scale(0.96, 1.04); }
-}
 
 /* When it pops, it stretches, then grows until it covers the screen */
 .bubble.popping {
-  transition: none;
+  opacity: 1;
   z-index: 20;
   animation: bubble-blow-up 0.9s cubic-bezier(0.6, 0, 0.9, 0.5) forwards;
 }
@@ -557,6 +844,55 @@ body:has(#gameScreen.active) {
   to   { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.4); opacity: 0; }
 }
 
+/* A winning circle popping like a bubble: it swells, then pops and is gone
+   (until the next spin brings new symbols) */
+.symbol.popping img { animation: bubble-pop 0.35s ease-out forwards; }
+@keyframes bubble-pop {
+  0%   { transform: scale(1);    opacity: 1; }
+  50%  { transform: scale(1.14); opacity: 1; }   /* swells... */
+  100% { transform: scale(1.3);  opacity: 0; }   /* ...and pops */
+}
+/* The ring and droplets left behind when a circle pops */
+.bubble-ring {
+  position: fixed;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  border: 4px solid var(--up);
+  pointer-events: none;
+  animation: bubble-ring 0.6s ease-out forwards;
+}
+@keyframes bubble-ring {
+  from { transform: translate(-50%, -50%) scale(0.9); opacity: 1; }
+  to   { transform: translate(-50%, -50%) scale(1.5); opacity: 0; border-width: 1px; }
+}
+.bubble-drop {
+  position: fixed;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px solid var(--up);
+  pointer-events: none;
+  animation: bubble-drop 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+@keyframes bubble-drop {
+  from { transform: translate(-50%, -50%); opacity: 1; }
+  to   { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.3); opacity: 0; }
+}
+
+/* Each popped bubble's share of the win, in the LED-board font */
+.bubble-cash {
+  position: fixed;
+  font-family: var(--sans);
+  font-size: 1.7rem;
+  color: var(--up);
+  text-shadow: 2px 2px 0 var(--black);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -50%);   /* screen.js animates it: pops out, then flies into the valuation meter */
+}
+
 /* Small bubbles popping everywhere */
 .burst {
   position: absolute;
@@ -584,7 +920,7 @@ body:has(#gameScreen.active) {
   padding: 14px 30px;
   font-family: var(--serif);
   font-size: clamp(2rem, 9vw, 5.5rem);
-  font-weight: 700;
+  font-weight: 400;
   text-align: center;
   color: var(--black);
   background: var(--white);
@@ -602,6 +938,26 @@ body:has(#gameScreen.active) {
 /* (The sky stays the same as the bubble grows. To make it darken again, add
    e.g.  body.danger { --dim: 0.45; }  and  body.critical { --dim: 0.7; }  here.) */
 
+/* The red flood when the bubble pops: it spreads out of the bubble meter (--x, --y are set
+   by screen.js) until it covers the screen. In the middle, the valuation drops to $0. */
+.flood {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: #e60000;
+  color: var(--white);
+  text-align: center;
+  clip-path: circle(0 at var(--x, 10%) var(--y, 50%));
+}
+.flood.show { display: flex; animation: flood 1.5s cubic-bezier(0.5, 0, 0.3, 1) forwards; }
+@keyframes flood { to { clip-path: circle(150vmax at var(--x, 10%) var(--y, 50%)); } }
+.crash-label  { font-family: var(--sans); font-size: 1.4rem; font-weight: 700; letter-spacing: 8px; text-transform: uppercase; }
+.crash-number { font-family: var(--sans); font-size: clamp(5rem, 19vw, 17rem); font-weight: 700; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.crash-note   { font-family: var(--serif); font-size: clamp(1.6rem, 3.4vw, 3rem); }
+
 /* collapse: the bubble popped, everything goes black and crumbles */
 body.collapse { --dim: 1; background: var(--black); }
 body.collapse .machine { animation: crumble 3s ease-in forwards; }
@@ -615,9 +971,11 @@ body.collapse .machine { animation: crumble 3s ease-in forwards; }
 /* ---------- 12. Smaller screens ---------- */
 @media (max-width: 1000px) {
   .info-bar {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-areas: "spins valuation" "win bubble" "spin spin";
+    grid-template-columns: 1fr;
+    grid-template-areas: "spins" "controls";
+    justify-items: center;
   }
+  .spin-controls { gap: 16px; }
   .value, .valuation-box .value { font-size: 1.4rem; }
   .spin { width: 220px; height: 76px; font-size: 2rem; }
 }

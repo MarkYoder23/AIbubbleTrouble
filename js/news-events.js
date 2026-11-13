@@ -3,10 +3,13 @@
 //  The breaking news events players read. Edit the wording freely.
 //
 //  Each news event has:
+//    fullScreen OPTIONAL: add  fullScreen: true,  to make a story stop the game with
+//               a big pop-up. Without it, the story shows as a card at the top
+//               and the game keeps going.
 //    headline   the big headline. Keep it SHORT and punchy (about 5 words).
 //               It's shown huge in Times New Roman, exactly as typed here
 //               (capital on the first word and names only).
-//    when       the small date line under the headline
+//    when       when it happened (not shown in the pop-up; kept for your reference)
 //    date       the same date as "year-month" (e.g. "2025-01"). Stories play out
 //               roughly in order: old ones early in the game, recent ones late.
 //    picture    an emoji (not shown any more; kept in case you want it back)
@@ -138,9 +141,9 @@ const BAD_NEWS = [
 //  once, near the end of every game (see spyStorySpinsLeft in settings.js).
 // ---------------------------------------------------------------------
 const SPY_STORY = {
-  headline: "Report: suspected Chinese spy targeted Jensen",
-  when: "October 2026 · The New York Times",
-  date: "2026-10",       // year-month: puts the story in order (earlier = earlier in the game)
+  headline: "Jensen Huang admits affair with alleged Chinese spy",
+  when: "November 2026 · The New York Times",
+  date: "2026-11",       // year-month: puts the story in order (earlier = earlier in the game)
   picture: "🕵️",
   photo: "images/news/jensen-spy.jpg",
   valuation: -40, spins: 0, bubble: 0,

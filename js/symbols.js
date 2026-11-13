@@ -42,7 +42,7 @@ const AI_LABS = [
     photo: "images/symbols/chatgpt.png",
     voice: "audio/chatgpt.mp3",
     weight: 20,
-    pays: { 3: 0.07, 4: 0.17, 5: 0.4 },
+    pays: { 3: 0.042, 4: 0.102, 5: 0.24 },
   },
   {
     id: "gemini",
@@ -50,7 +50,7 @@ const AI_LABS = [
     photo: "images/symbols/gemini.png",
     voice: "audio/gemini.mp3",
     weight: 20,
-    pays: { 3: 0.07, 4: 0.17, 5: 0.4 },
+    pays: { 3: 0.042, 4: 0.102, 5: 0.24 },
   },
   {
     id: "claude",
@@ -58,7 +58,7 @@ const AI_LABS = [
     photo: "images/symbols/claude.png",
     voice: "audio/claude.mp3",
     weight: 20,
-    pays: { 3: 0.07, 4: 0.17, 5: 0.4 },
+    pays: { 3: 0.042, 4: 0.102, 5: 0.24 },
   },
 ];
 
@@ -76,7 +76,7 @@ const CHARACTERS = [
     photo: "images/symbols/dario-amodei.png",
     voice: "audio/dario.mp3",
     weight: 12,
-    pays: { 3: 0.12, 4: 0.3, 5: 0.74 },
+    pays: { 3: 0.072, 4: 0.18, 5: 0.444 },
   },
   {
     id: "zuckerberg",
@@ -84,7 +84,7 @@ const CHARACTERS = [
     photo: "images/symbols/mark-zuckerberg.png",
     voice: "audio/zuckerberg.mp3",
     weight: 10,
-    pays: { 3: 0.15, 4: 0.34, 5: 0.89 },
+    pays: { 3: 0.09, 4: 0.204, 5: 0.534 },
   },
   {
     id: "ellison",
@@ -92,7 +92,7 @@ const CHARACTERS = [
     photo: "images/symbols/larry-ellison.png",
     voice: "audio/ellison.mp3",
     weight: 9,
-    pays: { 3: 0.2, 4: 0.44, 5: 1.09 },
+    pays: { 3: 0.12, 4: 0.264, 5: 0.654 },
   },
   {
     id: "musk",
@@ -100,7 +100,7 @@ const CHARACTERS = [
     photo: "images/symbols/elon-musk.png",
     voice: ["audio/musk.mp3", "audio/musk2.mp3"],   // two lines: one is picked at random
     weight: 9,
-    pays: { 3: 0.2, 4: 0.44, 5: 1.09 },
+    pays: { 3: 0.12, 4: 0.264, 5: 0.654 },
   },
   {
     id: "altman",
@@ -108,7 +108,7 @@ const CHARACTERS = [
     photo: "images/symbols/sam-altman.png",
     voice: "audio/altman.mp3",
     weight: 8,
-    pays: { 3: 0.3, 4: 0.74, 5: 1.98 },
+    pays: { 3: 0.18, 4: 0.444, 5: 1.188 },
   },
 ];
 
@@ -123,7 +123,7 @@ const WILD = {
   name: "Jensen Huang",
   photo: "images/symbols/jensen-huang.png",
   voice: "audio/jensen.mp3",
-  weight: 41,
+  weight: 8,
   isWild: true,
   reels: [1, 2, 3],        // reels are numbered 0 to 4, left to right
 };
@@ -135,8 +135,8 @@ const WILD = {
 const NEWS_SYMBOL = {
   id: "news",
   name: "Breaking News",
-  photo: "images/symbols/news.png",
-  weight: 1.2,             // news lands on about 1 spin in 4
+  photo: "",   // no photo: the game draws it (a "!" in a green or red circle, see makeSymbol in screen.js)
+  weight: 1.6,             // news lands on about 3 spins in 10
   isNews: true,
 };
 

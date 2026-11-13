@@ -21,7 +21,6 @@ Any symbol without a photo uses its built-in tile instead.
   Special
   -------
   jensen-huang.png       Jensen Huang, the WILD (counts as any symbol)
-  news.png               The BREAKING NEWS symbol
 
 Tips
 - Use square photos: the same width and height, e.g. 600 x 600.

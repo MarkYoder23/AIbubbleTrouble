@@ -18,21 +18,43 @@ const SETTINGS = {
 
   // Spins
   startingSpins: 10,          // How many spins $1 buys.
-  maxSpins: 16,               // A game can never go past this many spins.
-  bonusSpinsForWin: 1,        // Extra spins for a spin with a winning line.
-  bonusSpinsForFive: 2,       // Extra spins instead, if a line has five in a row.
+  maxSpins: 13,               // A game can never go past this many spins.
+  bonusSpinsForWin: 0,        // Extra spins for an ordinary win (0 = none: bonus spins are rare).
+  bonusSpinsForFive: 1,       // Extra spins for a CEO across all five reels (about 1 game in 4).
+
+  // Autospin (the AUTO button, or the A key): the game spins by itself
+  autoSpinPause: 0.6,         // Seconds between spins when nothing was won.
+  autoSpinPauseAfterWin: 2.6, // Seconds after a win, so the bubbles get to pop.
+  autoNewsSeconds: 3.5,       // News pop-ups close this fast during autospin.
 
   // The compute bill: every spin costs this, win or lose (0.08 = 8%).
   // Small wins are still celebrated even when they're smaller than the bill.
-  computeBill: 0.112,
+  computeBill: 0.163,
 
   // The bubble (0% to 100%)
-  bubbleGrowthPerSpin: 2,     // Every spin inflates the bubble this much.
-  bubblePerWin: 8,            // Wins inflate it more: a +50% win adds 0.5 × 8 = 4% to the bubble.
+  bubbleGrowthPerSpin: 3.75,    // Every spin inflates the bubble this much.
+  bubblePerWin: 6,            // Wins inflate it more: a +50% win adds 0.5 × 6 = 3% to the bubble.
   popRisk: 0.05,              // Chance to pop each spin = popRisk × (bubble ÷ 100)². At 100% it always pops.
 
   // The hot start: the first few spins are rigged to always win, so it feels easy.
   hotStartSpins: 4,           // How many opening spins are guaranteed a winning line (and only good news).
+
+  // The bubble meter changes color as it fills
+  bubbleYellowAt: 40,         // Yellow from this % ...
+  bubbleRedAt: 70,            // ... red and shaking from this %.
+
+  // Winning circles pop like bubbles, one after another
+  highlightBeforePop: 0.6,    // Seconds the winning circles glow green before they start popping.
+  cashFlightSeconds: 1.1,     // How long each "+$4.2B" takes to pop out and fly into the valuation meter.
+  bubblePopGap: 0.12,         // Seconds between each pop (0 = all at once).
+
+  // The stock tickers around the edge: slow at first, fast by the end (pixels per second)
+  tickerStartSpeed: 30,
+  tickerEndSpeed: 260,
+
+  // The reels spin faster as the game goes on
+  spinSpeedUp: 0.06,          // 6% faster every spin...
+  maxSpinSpeed: 1.8,          // ...up to 1.8 times as fast as the first spin.
 
   // Background music (audio/main-street.mp3). It starts soft and gets louder with every spin.
   musicStartVolume: 0.08,     // 0 to 1. How loud at the first spin.
@@ -55,31 +77,23 @@ const SETTINGS = {
   newsOrderShuffle: 0.25,     // How loosely the news follows date order (0 = strictly in order).
   spyStorySpinsLeft: 2,       // The Jensen spy story always hits once, on the spin when this many spins are left.
   moreNewsPerSpin: 0.08,      // NEWS lands 8% more often every spin played.
+  newsCardSeconds: 3,         // How long a news card takes to rise from the middle to the top and fade (the game never waits for it).
+  newsLeadIn: 0.6,            // Seconds the NEWS symbol ripples before the story opens (SPACE skips).
+  newsAfterPause: 0.5,        // Seconds after the story closes before the wins are shown (SPACE skips).
   newsPopupSeconds: 12,       // How long the news pop-up stays up (click or SPACE to skip).
 
-  // Double Down (the final round). The odds are hidden until the end screen.
-  decisionSeconds: 10,             // Seconds to choose. If time runs out, it doubles down for you.
-  houseKeeps: "about 45¢",         // Shown on the end screen. Update it if you re-tune the odds.
-  doubleDownMinOdds: 0.10,         // 10% chance to win at your starting valuation...
-  doubleDownOddsPerDoubling: 0.07, // ...plus 7% every time your valuation doubles...
-  doubleDownMaxOdds: 0.35,         // ...but never better than 35%.
+  // The payout tiers (see checkStatus in game.js):
+  //   below startingValuation = lose the $1, at/above it = get the $1 back,
+  //   at/above jackpotAt = win $5.
+  jackpotAt: 1e12,                 // $1 trillion wins the $5.
 };
 
 
 // ---------------------------------------------------------------------
-//  2. THE GRID AND PAYLINES
-//  5 reels (columns) × 3 rows. Rows are numbered 0 = top, 1 = middle, 2 = bottom.
-//  Each payline lists which row to check on each of the 5 reels.
-//  A line wins with 3, 4 or 5 of the same symbol in a row, starting from
-//  the LEFT reel. The WILD (Jensen Huang) counts as any symbol.
+//  2. THE GRID: 5 reels (columns) × 3 rows. Rows are 0 = top, 1 = middle, 2 = bottom.
+//  Wins use "243 ways" (like Lucky Buddha): a symbol anywhere on each reel in a
+//  row, starting from the LEFT reel. The WILD (Jensen Huang) counts as any symbol.
+//  (See findWins in game.js.)
 // ---------------------------------------------------------------------
 const REELS = 5;
 const ROWS = 3;
-
-const PAYLINES = [
-  [1, 1, 1, 1, 1],   // Line 1: middle row
-  [0, 0, 0, 0, 0],   // Line 2: top row
-  [2, 2, 2, 2, 2],   // Line 3: bottom row
-  [0, 1, 2, 1, 0],   // Line 4: V shape
-  [2, 1, 0, 1, 2],   // Line 5: upside-down V
-];

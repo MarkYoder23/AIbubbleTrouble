@@ -9,7 +9,8 @@
 //
 //  game.status can be:
 //    "playing"     still spinning
-//    "finalRound"  out of spins and at/above the starting valuation
+//    "jackpot"     out of spins at $1 trillion or more (wins $5)
+//    "brokeEven"   out of spins at/above the starting valuation (gets the $1 back)
 //    "belowStart"  out of spins but below the starting valuation (lost)
 //    "popped"      the bubble burst (lost)
 //    "bankrupt"    valuation collapsed (lost)
@@ -90,11 +91,11 @@ function isHotStart(game) {
 }
 
 
-// Spin the grid. During the hot start, keep re-spinning (secretly) until a line wins.
+// Spin the grid. During the hot start, keep re-spinning (secretly) until something wins.
 function spinGrid(game) {
   let grid = randomGrid(game.bubble, game.spinsPlayed);
   if (isHotStart(game)) {
-    for (let tries = 0; tries < 200 && findLineWins(grid).length === 0; tries++) {
+    for (let tries = 0; tries < 200 && findWins(grid).length === 0; tries++) {
       grid = randomGrid(game.bubble, game.spinsPlayed);
     }
   }
@@ -102,30 +103,39 @@ function spinGrid(game) {
 }
 
 
-// Check every payline for 3, 4 or 5 matching symbols from the left.
-// The left reel never has a WILD, so it decides what each line is.
-// Returns a list of wins: { line, symbol, count, gain, cells }
-//   cells = the [reel, row] spots that make up the win (for highlighting)
-function findLineWins(grid) {
+// "243 ways to win" (like Lucky Buddha): a symbol wins when it shows up ANYWHERE
+// on each reel in a row, starting from the left reel. Rows don't matter.
+//   - 3, 4 or 5 reels in a row = a win (the WILD fills in for anything)
+//   - "ways" = how many different paths make the win. 2 Claudes on reel 1 and
+//     2 on reel 2 and 1 on reel 3 = 2 × 2 × 1 = 4 ways, so it pays 4 times.
+// Returns a list of wins: { symbol, count, ways, gain, cells }
+//   cells = every [reel, row] spot that's part of the win (for highlighting)
+function findWins(grid) {
   const wins = [];
 
-  PAYLINES.forEach((rows, index) => {
-    const first = grid[0][rows[0]];
-    if (!first.pays) return;   // the line starts with NEWS: no win
+  for (const symbol of PAYING_SYMBOLS) {
+    let count = 0;
+    let ways = 1;
+    const cells = [];
 
-    let count = 1;
-    while (count < REELS) {
-      const next = grid[count][rows[count]];
-      if (next.id !== first.id && !next.isWild) break;
+    for (let reel = 0; reel < REELS; reel++) {
+      const matches = [];
+      for (let row = 0; row < ROWS; row++) {
+        const s = grid[reel][row];
+        if (s === symbol || s.isWild) matches.push([reel, row]);
+      }
+      if (matches.length === 0) break;
       count++;
+      ways *= matches.length;
+      cells.push(...matches);
     }
 
-    if (count >= 3) {
-      const cells = [];
-      for (let reel = 0; reel < count; reel++) cells.push([reel, rows[reel]]);
-      wins.push({ line: index + 1, symbol: first, count, gain: first.pays[count], cells });
+    // The left reel never has a WILD, so the symbol itself has to start the win
+    const startsWithSymbol = grid[0].includes(symbol);
+    if (count >= 3 && startsWithSymbol) {
+      wins.push({ symbol, count, ways, gain: symbol.pays[count] * ways, cells });
     }
-  });
+  }
 
   return wins;
 }
@@ -235,14 +245,15 @@ function playSpin(game) {
 
   // 4. Then winning lines add together. A bigger bubble and a win streak make wins bigger.
   //    Every win is celebrated, even one smaller than the bill.
-  const lineWins = findLineWins(grid);
+  const lineWins = findWins(grid);
   let totalGain = 0;
   let bonusSpins = 0;
   game.streak = lineWins.length > 0 ? game.streak + 1 : 0;
 
   if (lineWins.length > 0) {
     totalGain = lineWins.reduce((sum, win) => sum + win.gain, 0) * winBoost(game.bubble) * streakBoost(game.streak);
-    const gotFive = lineWins.some(win => win.count === 5);
+    // Bonus spins are rare: only a CEO across all five reels earns one (not the AI logos)
+    const gotFive = lineWins.some(win => win.count === 5 && CHARACTERS.includes(win.symbol));
     bonusSpins = addBonusSpins(game, gotFive ? SETTINGS.bonusSpinsForFive : SETTINGS.bonusSpinsForWin);
     game.winsSeen += 1;
   }
@@ -281,7 +292,8 @@ function checkStatus(game) {
   if (!isHotStart(game) && Math.random() < popChance(game.bubble)) return "popped";
   if (game.valuation < SETTINGS.bankruptBelow) return "bankrupt";
   if (game.spinsLeft > 0) return "playing";
-  if (game.valuation >= SETTINGS.startingValuation) return "finalRound";
+  if (game.valuation >= SETTINGS.jackpotAt) return "jackpot";
+  if (game.valuation >= SETTINGS.startingValuation) return "brokeEven";
   return "belowStart";
 }
 
@@ -294,22 +306,6 @@ function winBoost(bubble) {
 // How much a win streak boosts wins (1 win = ×1, 2 in a row = ×1.1, ...)
 function streakBoost(streak) {
   return Math.min(SETTINGS.maxStreakBoost, 1 + Math.max(0, streak - 1) * SETTINGS.streakBonus);
-}
-
-
-// The chance that Double Down wins, based on how much your valuation has grown
-function doubleDownOdds(game) {
-  const timesDoubled = Math.log2(Math.max(1, game.valuation / SETTINGS.startingValuation));
-  const odds = SETTINGS.doubleDownMinOdds + SETTINGS.doubleDownOddsPerDoubling * timesDoubled;
-  return Math.min(SETTINGS.doubleDownMaxOdds, odds);
-}
-
-
-// Roll the Double Down. Returns true if the player won.
-function rollDoubleDown(game) {
-  const won = Math.random() < doubleDownOdds(game);
-  game.status = won ? "doubleWon" : "doubleLost";
-  return won;
 }
 
 
