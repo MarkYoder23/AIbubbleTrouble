@@ -160,7 +160,7 @@ body:has(#startScreen.active) { background: #1d2a33; }
   width: calc(100% + 160px);
   max-width: 96vw;
   margin: 0 0 0 -80px;
-  font-size: clamp(3rem, min(9.6vw, 14.5vh), 8rem);
+  font-size: clamp(2.6rem, min(8.2vw, 12.4vh), 6.8rem);
   line-height: 0.95;
 }
 /* Shorter screens (a laptop's 720p): the same content, a little tighter, so the intro still fits */
@@ -174,7 +174,9 @@ body:has(#startScreen.active) { background: #1d2a33; }
   #startScreen .payouts td { padding: 4px 10px; }
   #startScreen .checkbox { margin-bottom: 12px; }
 }
-#startScreen .logo span { color: var(--white); background: none; padding: 0; }
+#startScreen .logo span { display: block; padding: 0; background: none; }
+#startScreen .logo .logo-green { color: var(--up); }    /* AI BUBBLE in green ... */
+#startScreen .logo .logo-red   { color: var(--down); }  /* ... TROUBLE in red */
 #startScreen .checkbox .box { border-color: var(--white); }
 #startScreen .checkbox input:checked + .box { background: var(--white); }
 #startScreen .checkbox input:checked + .box::after { color: var(--black); }
@@ -184,7 +186,7 @@ body:has(#startScreen.active) { background: #1d2a33; }
 
 /* End screen */
 .end-icon  { margin-bottom: 6px; font-size: 5rem; }
-.end-title { margin-bottom: 10px; font-size: clamp(2.2rem, 8vw, 3.4rem); font-weight: 400; }
+.end-title { margin-bottom: 10px; font-size: clamp(2.2rem, 8vw, 3.4rem); font-weight: 400; text-transform: uppercase; }   /* YOU LOST YOUR DOLLAR */
 .end-text  { margin-bottom: 22px; font-size: 1.1rem; line-height: 1.5; }
 /* End screen: a slideshow of data center photos behind the result card.
    Each photo shows for 5 seconds, then fades into the next (15 seconds for all 3).
@@ -618,7 +620,7 @@ body:has(#gameScreen.active) {
 @keyframes news-card {
   0%   { opacity: 1; transform: translate(calc(-50% + var(--from-x, 0px)), calc(-50% + var(--from-y, 0px))) scale(0.04); animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1); }
   14%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  75%  { opacity: 1; transform: translate(-50%, calc(-50% - 27vh)); }   /* its top edge reaches the top of the screen */
+  60%  { opacity: 1; transform: translate(-50%, calc(-50% - 21vh)); }   /* it holds, then fades slowly over the last stretch */
   100% { opacity: 0; transform: translate(-50%, calc(-50% - 36vh)); }
 }
 .news-card-picture { flex: none; height: 100%; aspect-ratio: 16 / 9; }
@@ -778,6 +780,7 @@ body:has(#gameScreen.active) {
   visibility: hidden;
 }
 .win-banner.show { visibility: visible; }
+.win-banner.opening { font-size: clamp(2rem, 5.2vw, 5.5rem); }   /* "Let's change the world!" is a long line, so it's smaller than the win words */
 .win-banner small { display: block; margin-top: 4px; font-size: 0.34em; letter-spacing: -0.02em; text-align: center; }  /* what matched, e.g. "Five Sam Altmans" */
 /* The win words slide in from the left, trailed by fading "echo" copies that
    catch up and merge into the main words, then everything fades out. */
@@ -969,7 +972,7 @@ body:has(#gameScreen.active) {
   display: none;
   align-items: center;
   justify-content: center;
-  background: #e60000;
+  background: var(--down);   /* the same red as the bubble meter */
   color: var(--white);
   text-align: center;
   clip-path: circle(0 at var(--x, 10%) var(--y, 50%));

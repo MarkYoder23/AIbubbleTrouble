@@ -78,6 +78,8 @@ const SETTINGS = {
   goodNewsChance: 0.75,       // How much of the news is good right after the hot start.
   newsSoursPerSpin: 0.05,     // Each spin after that, 7% less of the news is good...
   lowestGoodNews: 0.1,        // ...down to 10%. The bubble growing sours it faster, too.
+  newsScaleStart: 0.4,        // Stories hit at this share of their size on the first spin ...
+  newsScaleEnd: 1.3,          // ... growing to this multiple of their size by the last spins (so the big spikes come late).
   newsOrderShuffle: 0.25,     // How loosely the news follows date order (0 = strictly in order).
   spyStorySpinsLeft: 2,       // The Jensen spy story always hits once, on the spin when this many spins are left.
   moreNewsPerSpin: 0.08,      // NEWS lands 8% more often every spin played.

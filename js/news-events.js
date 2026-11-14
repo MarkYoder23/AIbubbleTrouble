@@ -36,7 +36,7 @@ const GOOD_NEWS = [
     date: "2025-10",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "📈",
     photo: "images/news/nvidia-5-trillion.jpg",
-    valuation: 50, spins: 0, bubble: 5,
+    valuation: 70, spins: 0, bubble: 5,
   },
   {
     headline: "Nvidia pays OpenAI to buy Nvidia",
@@ -44,7 +44,7 @@ const GOOD_NEWS = [
     date: "2025-09",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "🔁",
     photo: "images/news/circular-financing.jpg",
-    valuation: 40, spins: 0, bubble: 8,
+    valuation: 55, spins: 0, bubble: 8,
   },
   {
     headline: "Three Mile Island reopens for AI",
@@ -52,7 +52,7 @@ const GOOD_NEWS = [
     date: "2024-09",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "☢️",
     photo: "images/news/three-mile-island.jpg",
-    valuation: 15, spins: 2, bubble: 4,
+    valuation: 20, spins: 2, bubble: 4,
   },
   {
     headline: "CHIPS Act: $52 billion for chips",
@@ -60,7 +60,7 @@ const GOOD_NEWS = [
     date: "2022-08",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "🏛️",
     photo: "images/news/chips-act.jpg",
-    valuation: 20, spins: 1, bubble: 4,
+    valuation: 25, spins: 1, bubble: 4,
   },
 ];
 
@@ -75,7 +75,7 @@ const BAD_NEWS = [
     date: "2025-01",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "📉",
     photo: "images/news/deepseek.jpg",
-    valuation: -40, spins: 0, bubble: 0,
+    valuation: -55, spins: 0, bubble: 0,
   },
   {
     headline: "AI agents hack Hugging Face",
@@ -83,7 +83,7 @@ const BAD_NEWS = [
     date: "2026-07",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "🤖",
     photo: "images/news/hugging-face-hack.jpg",
-    valuation: -30, spins: 0, bubble: 10,
+    valuation: -40, spins: 0, bubble: 10,
   },
   {
     headline: "ChatGPT, Claude and Grok all crash",
@@ -99,7 +99,7 @@ const BAD_NEWS = [
     date: "2026-02",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "🪧",
     photo: "images/news/protests.jpg",
-    valuation: -20, spins: 0, bubble: 0,
+    valuation: -25, spins: 0, bubble: 0,
   },
   {
     headline: "Anthropic pays authors $1.5 billion",
@@ -107,7 +107,7 @@ const BAD_NEWS = [
     date: "2025-09",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "⚖️",
     photo: "images/news/authors-settlement.jpg",
-    valuation: -30, spins: 0, bubble: 0,
+    valuation: -40, spins: 0, bubble: 0,
   },
   {
     headline: "MIT: 95% of AI pilots earn nothing",
@@ -115,7 +115,7 @@ const BAD_NEWS = [
     date: "2025-08",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "🧾",
     photo: "images/news/mit-study.jpg",
-    valuation: -20, spins: 0, bubble: 8,
+    valuation: -25, spins: 0, bubble: 8,
   },
   {
     headline: "Chip crash: $2 trillion gone in a day",
@@ -123,7 +123,7 @@ const BAD_NEWS = [
     date: "2026-11",       // year-month: puts the story in order (earlier = earlier in the game)
     picture: "💥",
     photo: "images/news/chip-crash.jpg",
-    valuation: -40, spins: 0, bubble: 10,
+    valuation: -55, spins: 0, bubble: 10,
   },
 ];
 

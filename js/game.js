@@ -226,7 +226,12 @@ function pickNewsEvent(game) {
   const event = fresh.reduce((best, e) => (distance(e) < distance(best) ? e : best));
 
   game.newsShown.push(event);
-  return { ...event, isGood };
+  // Stories start small and get bigger as the game goes on, so the early game is steady and the spikes come later.
+  // (The story's numbers are rewritten here, so the news card shows exactly what is applied.)
+  const late = Math.min(1, game.spinsPlayed / SETTINGS.startingSpins);
+  const scale = SETTINGS.newsScaleStart + (SETTINGS.newsScaleEnd - SETTINGS.newsScaleStart) * late;
+  const valuation = event.valuation ? Math.round(event.valuation * scale / 5) * 5 : 0;
+  return { ...event, valuation: valuation || event.valuation, isGood };
 }
 
 

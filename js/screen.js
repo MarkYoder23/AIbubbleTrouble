@@ -577,6 +577,7 @@ function startGame() {
   setMessage("Press SPIN to pump your valuation!");
   updateStats();
   showScreen(page.gameScreen);
+  setTimeout(() => { if (game && game.spinsPlayed === 0) showOpeningBanner(); }, 350);   // "Let's change the world!" (gone as soon as the first spin starts)
 }
 
 // Turn autospin on or off (the AUTO button, or the A key)
@@ -732,9 +733,24 @@ function celebrate(gain, whatMatched) {
     `<span class="win-layer echo echo-2">${words}</span>` +
     `<span class="win-layer echo echo-1">${words}</span>` +
     `<span class="win-layer">${words}</span>`;
+  page.winBanner.classList.remove("opening");
   page.winBanner.style.color = tier.color;
   replayAnimation(page.winBanner, "show");
   Sound.chaChing();
+}
+
+
+// The opening banner when a game starts: the same big win words, with no subtitle and no sound.
+function showOpeningBanner() {
+  const words = "Let's change the world!";
+  page.winBanner.innerHTML =
+    `<span class="win-layer echo echo-3">${words}</span>` +
+    `<span class="win-layer echo echo-2">${words}</span>` +
+    `<span class="win-layer echo echo-1">${words}</span>` +
+    `<span class="win-layer">${words}</span>`;
+  page.winBanner.style.color = "#39ff14";   // neon green, like the bigger wins
+  page.winBanner.classList.add("opening");
+  replayAnimation(page.winBanner, "show");
 }
 
 

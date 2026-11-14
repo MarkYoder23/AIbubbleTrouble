@@ -246,3 +246,11 @@ To start it fresh, clear the browser's site data for the game.
 Changing the numbers changes the odds, so ask Claude to re-run the odds simulation after big changes.
 
 **Latest tweaks:** a lost Double Down fills the grid with 15 solid red NEWS symbols (no fading before the red flood covers them); the pop countdown falls at a constant rate to $0 (under $1B it keeps counting in billions); and news stories swing harder (good news up to +50%, bad news down to -40%, the Jensen spy story still -40%).
+
+**Title and pop colors:** the intro title is AI BUBBLE in green over TROUBLE in red (`.logo-green`, `.logo-red` in `style.css`); the red flood on a pop uses the same red as the bubble meter (`--down`); news cards last 2.4 s and start fading about halfway up.
+
+**News volatility:** good stories now move the valuation by +20% to +70%, bad stories by -25% to -55% (the Jensen spy story is still -40%). The pace line absorbs the swings, so the odds stay about the same (about 55% get the Double Down offer).
+
+**Late spikes:** news stories scale with how far into the game you are (`newsScaleStart` 0.4 on the first spin up to `newsScaleEnd` 1.3 by the last), so early stories are small (about +10-15%) and the big swings come late. The news card shows the scaled number. News cards last 3 s and fade slowly over the last stretch. The end screen title is always capitalized.
+
+**Opening banner:** when a game starts, the big win-style banner says "LET'S CHANGE THE WORLD!" in neon green (no subtitle, no sound). It slides in and goes away by itself, or as soon as the first spin starts. The words are in `showOpeningBanner` in `screen.js`.
