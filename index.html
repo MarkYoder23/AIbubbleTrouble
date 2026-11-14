@@ -23,7 +23,7 @@
           <li>$1 buys 10 spins. Your company starts at $100B.</li>
           <li>Match 3 or more from the left to raise your valuation.</li>
           <li>Every spin grows the bubble. If it pops, you lose.</li>
-          <li>After your last spin, your valuation decides what you get:</li>
+          <li>Jensen Huang is a Wild Card.</li>
         </ol>
 
         <!-- What each ending pays -->
@@ -31,7 +31,7 @@
           <tr><th colspan="2">HOW YOU GET PAID</th></tr>
           <tr class="lose"><td>Finish below $100B, or the bubble pops</td><td>LOSE YOUR $1</td></tr>
           <tr class="win"><td>Finish above $100B</td><td>GET $1 BACK</td></tr>
-          <tr class="win"><td>Hit $1 TRILLION</td><td>WIN $5</td></tr>
+          <tr class="win"><td>Finish above $1 TRILLION</td><td>WIN $5</td></tr>
         </table>
 
         <label class="checkbox">
@@ -143,6 +143,15 @@
         <!-- Final round pop-up (hidden until the last spin).
              Double Down is the big, obvious choice. Cash Out is small.
              The odds are hidden. If time runs out, it doubles down for you. -->
+        <div class="final-round hidden" id="finalRound">
+          <div class="final-title">FINAL ROUND</div>
+          <p class="final-pitch" id="finalPitch"></p>
+          <button class="btn dare" id="doubleDownButton">DOUBLE DOWN<small>One more spin: win $5 or lose it all</small></button>
+          <p class="social-proof" id="socialProof"></p>
+          <div class="decision-timer"><div id="decisionTimer"></div></div>
+          <p class="decision-note" id="decisionNote"></p>
+          <button class="cash-out-link" id="cashOutButton">or cash out and get your $1 back</button>
+        </div>
 
       </div>
     </section>

@@ -20,7 +20,7 @@ videos/data-center.mp4  🎬 The start page background video (replace it, same n
 audio/                🔊 Voice clips for each symbol: dario, zuckerberg, ellison, musk + musk2, altman, jensen,
                          chatgpt, gemini, claude (.mp3)
                       🔊 generic1-3.mp3, hype lines that play at random on wins
-                      🎵 main-street.mp3, the background music (loops)
+                      🎵 main-street.mp3, the background music (currently switched off: see `backgroundMusic` in settings.js)
                       🔔 cha-ching.mp3 (every win) and news.mp3 (breaking news)
                       🎵 sad-song.mp3, plays on the end screen when the player loses
 
@@ -117,8 +117,9 @@ Open `js/news-events.js`. Each event looks like this:
   bar fills to the top and breaks, red floods the whole screen, and the valuation counts
   down to $0 in huge numbers in the middle.
 - **Valuation (right):** shows your real valuation. The dashed BREAK EVEN line is the $100B you
-  started with: finish above it to get the $1 back. The top, marked JACKPOT, is the
-  $1 trillion that wins the $5. The bar is always green.
+  started with: finish above it to get the $1 back. The top, marked JACKPOT, is $1 trillion.
+  There is no Double Down line: the Double Down is a last-minute surprise (it is not on the
+  intro rules either). The bar is always green and never resets to 0 near the top.
   Every spin's compute bill pulls it down; when winning bubbles pop, each "+$4.2B" flies
   into the meter and it rises by that amount. The scale is in multiples (top = 10x the goal).
 
@@ -153,7 +154,7 @@ The dashed line is break-even.
    anywhere on 3, 4 or 5 reels in a row, starting from the **left** reel. Rows don't
    matter. The WILD fills in for anything. Each extra copy on a reel multiplies the win:
    2 Claudes on reel 1, 2 on reel 2 and 1 on reel 3 = 2 × 2 × 1 = 4 ways = 4 times the pay.
-3. **The compute bill:** every spin costs 16% of your valuation, win or lose. Small wins are
+3. **The compute bill:** every spin costs 3% of your valuation. On a spin with no match the bar drops by the bill. On a winning spin the bill is already factored in: a win always at least covers it, so the bar only rises (the "+$" amounts that fly in are the win after the bill). The bar only drops on no match or bad news. Small wins are
    often smaller than the bill, but they're still celebrated with a WIN banner. The bigger
    the win, the bigger the banner (white for small wins, neon green for bigger ones): Line Goes Up, Scaling Laws, Maximum Growth, Hyperscaled, AGI Achieved (italic Times New Roman).
 4. **Bonus spins are rare:** only a CEO across all five reels gives +1 spin (about 1 game
@@ -161,10 +162,26 @@ The dashed line is break-even.
 5. **Win streaks:** each win in a row makes the next one bigger (×1.1, ×1.2 ... up to ×1.5).
    Streaks add extra money rain, and the WIN box shows the streak. Under the big win words,
    a smaller line says what matched (e.g. "Five Sam Altmans × 2 ways").
-6. **Success inflates the bubble:** the bigger a win, the more the bubble grows.
+6. **Success inflates the bubble:** every spin adds a little, every winning spin adds a flat bump (`bubblePerWinningSpin`) plus more for a bigger win, and good news adds to it too, so the bubble climbs steadily through a game.
 7. **After the last spin, the valuation decides the payout:** below $100B loses the
-   dollar, $100B or more gets the dollar back, and $1 trillion or more (the JACKPOT
-   mark on the meter) wins the $5.
+   dollar, $100B or more gets the dollar back, $500B or more is offered the **Double Down**
+   (the final round): take the $1 back, or risk it on one more spin to win $5 or lose it
+   all. Finishing above $1 trillion wins the $5 straight away. The Double Down odds are
+   hidden (5% at $500B, rising 2 points each time the valuation doubles, up to 12%; see
+   `doubleDownMinOdds` in `settings.js`). Double Down is the huge button, cash out is a
+   boxed button below it, and a 10-second timer doubles down for the player if they don't choose.
+   **The hidden pace line:** every game secretly aims for a finishing valuation (between
+   about $650B and $920B; `paceLow`, `paceHigh`) and the valuation is steered along a smooth
+   climb toward it, so there are no huge early gains followed by a flat ceiling. A win can only
+   lift the valuation to about 30% above the line (`paceSlack`); a winning spin when you are
+   behind the line closes the gap (`paceCatchUp`); no spin adds more than 80% of where it
+   started (`maxSpinGain`); and when ahead of the line a little more of the news turns bad, when
+   behind a little more turns good (`paceNewsSwing`), which makes the dips. The line expects the
+   Jensen spy story's -40% near the end (`paceSpyLift`), and the last spins climb back.
+   **The soft ceiling** (about $900B-$990B, `ceilingLow`/`ceilingHigh`) is now only a late
+   backstop: gains shrink past `ceilingKnee` (90% of it) so nothing jumps or resets. Only 2.5%
+   of games have no ceiling (`jackpotChance`); they aim just past $1 trillion and about 0.8%
+   of all games end up there.
 8. **The reveal:** the end screen shows what the game was hiding: how many wins were
    celebrated, the compute bills paid, and how many spins were really above break-even.
 
@@ -184,11 +201,17 @@ The dashed line is break-even.
 | Make the bubble pop less | `popRisk` or `bubbleGrowthPerSpin` in `settings.js` |
 | Give more spins | `startingSpins`, `maxSpins`, `bonusSpinsForWin`, `bonusSpinsForFive` in `settings.js` |
 | Change autospin's pace | `autoSpinPause`, `autoSpinPauseAfterWin`, `autoNewsSeconds` in `settings.js` |
-| Make every spin cost more or less | `computeBill` in `settings.js` (0.09 = 9%) |
+| Make every spin cost more or less | `computeBill` in `settings.js` (0.03 = 3%) |
+| Make wins add more or less valuation (the bubble doesn't care) | `winPayScale` in `settings.js` |
+| Make the climb steadier or wilder / aim games higher or lower | `paceSlack`, `maxSpinGain`, `paceCatchUp`, `paceLow`, `paceHigh` in `settings.js` |
+| Make the $1 trillion jackpot more or less rare | `jackpotChance` in `settings.js` |
+| Change when the Double Down is offered, or its odds | `doubleDownAt`, `doubleDownMinOdds`, `doubleDownOddsPerDoubling` and `doubleDownMaxOdds` in `settings.js` |
 | Change the final-round timer | `decisionSeconds` in `settings.js` |
 | Make the cha-ching or news sound softer or louder | the `volume` numbers in `files` at the top of `sound.js` (news is 0.25) |
 | Change the win highlight color | `.symbol.win img` in `style.css` (now neon green #39ff14) |
+| Turn the background music on | `backgroundMusic: true` in `settings.js` |
 | Make the music softer or louder | `musicStartVolume` and `musicEndVolume` in `settings.js` |
+| Make the CEO voice clips quieter or louder | `voiceVolume` in `settings.js` |
 | Change the background music | replace `audio/main-street.mp3` (same name) |
 | Change a CEO's voice clip | replace their file in `audio/` (same name), or change their `voice` line in `symbols.js` |
 | Add a generic voice line | put the .mp3 in `audio/` and add it to `GENERIC_VOICES` at the bottom of `symbols.js` |
@@ -212,10 +235,14 @@ About 3 in 10 spins have breaking news, and about 3 in 4 of the news after the h
 start is bad. The news plays out roughly in date order (older stories early, recent ones late), and a
 story doesn't repeat until all of its kind have been shown. The Jensen spy story is always
 the last story: it hits near the end of almost every game (the rest pop first), and no news
-comes after it. About 45% of players get their dollar back, and
-about 2% hit the $1 trillion jackpot. The house keeps about 45¢ per dollar.
+comes after it. About 56% of games end with the Double Down offer (they finish at a median of about $810B, almost all between $560B and $940B),
+about 23% get their dollar back, about 21% lose (the bubble popping), and about 0.8% hit the
+$1 trillion jackpot. If about 85% of the players who are offered the Double Down take it,
+the house keeps about 45¢ per dollar.
 
 **The decision log** is saved in the browser on the laptop, so it builds up over the day.
 To start it fresh, clear the browser's site data for the game.
 
 Changing the numbers changes the odds, so ask Claude to re-run the odds simulation after big changes.
+
+**Latest tweaks:** a lost Double Down fills the grid with 15 solid red NEWS symbols (no fading before the red flood covers them); the pop countdown falls at a constant rate to $0 (under $1B it keeps counting in billions); and news stories swing harder (good news up to +50%, bad news down to -40%, the Jensen spy story still -40%).

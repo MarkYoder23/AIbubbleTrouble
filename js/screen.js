@@ -33,6 +33,8 @@ const page = {
   spinChart:    document.getElementById("spinChart"),
   autoButton:   document.getElementById("autoButton"),
   spinButton:   document.getElementById("spinButton"),
+  cashOutButton:    document.getElementById("cashOutButton"),
+  doubleDownButton: document.getElementById("doubleDownButton"),
   resetButton:  document.getElementById("resetButton"),
 
   // Info bar and top bar
@@ -45,8 +47,13 @@ const page = {
   // Reels: 5 columns
   reels:        [0, 1, 2, 3, 4].map(i => document.getElementById("reel" + i)),
   spinControls: document.getElementById("spinControls"),
+  finalRound:   document.getElementById("finalRound"),
   totalRaised:  document.getElementById("totalRaised"),
   winBanner:    document.getElementById("winBanner"),
+  finalPitch:   document.getElementById("finalPitch"),
+  socialProof:  document.getElementById("socialProof"),
+  decisionTimer: document.getElementById("decisionTimer"),
+  decisionNote: document.getElementById("decisionNote"),
   reveal:       document.getElementById("reveal"),
 
   // Breaking news pop-up
@@ -186,7 +193,7 @@ function addChartCandle(outcome) {
   const close = game.valuation;
   lastClose = close;
   const afterNews = outcome ? outcome.valuationAfterNews : close;
-  const afterBill = outcome ? afterNews - outcome.bill : close;
+  const afterBill = outcome ? (outcome.lineWins.length > 0 ? afterNews : afterNews - outcome.bill) : close;   // (no dip on a win)
   const high = chartHeight(Math.max(open, afterNews, close));
   const low = chartHeight(Math.min(open, afterNews, afterBill, close));
   const top = chartHeight(Math.max(open, close));
@@ -545,6 +552,8 @@ function startGame() {
   hideNewsCard();
   setAutoSpin(false);
   game = newGame();
+  stopDecisionCountdown();
+  page.finalRound.classList.add("hidden");
   isSpinning = false;
   shownNumbers.totalRaised = 0;
   shownNumbers.lastWin = 0;
@@ -623,7 +632,7 @@ async function spin() {
   // 2. Then the winning lines
   // Light up every winning symbol, and fade out the rest
   outcome.lineWins.forEach(win => highlightCells(win.cells, "win"));
-  popWinningBubbles(outcome.lineWins, outcome.winAmount);
+  popWinningBubbles(outcome.lineWins, outcome.netWin);   // the bar rises by the win net of the bill
   if (outcome.lineWins.length > 0) page.reels.forEach(reel => reel.parentElement.classList.add("has-win"));
   showSpinResult(outcome);
 
@@ -650,7 +659,11 @@ async function spin() {
   if (game.status === "popped")     popTheBubble("The AI bubble burst. Your valuation crashed to zero.");
   if (game.status === "bankrupt")   popTheBubble("Your company went bankrupt before the bubble even peaked.");
   if (game.status === "jackpot")   { await wait(2200); showEndScreen("won5"); }
-  if (game.status === "brokeEven") { await wait(2200); showEndScreen("won1"); }
+  if (game.status === "finalRound") { await wait(2200); showFinalRound(); }   // let the last spin's pops finish first
+  if (game.status === "brokeEven") {
+    await wait(2200);
+    showEndScreen("won1", `You finished above break-even, but not past the ${formatMoney(SETTINGS.doubleDownAt)} that earns a Double Down.`);
+  }
   if (game.status === "belowStart") {
     await wait(1600);
     showEndScreen("lost", `Your final valuation of ${formatMoney(game.valuation)} ended below your ${formatMoney(SETTINGS.startingValuation)} start.`);
@@ -816,6 +829,7 @@ function showNewsPopup(news, fromCell) {
 async function popTheBubble(reason) {
   hideNewsCard();
   page.spinButton.disabled = true;
+  page.finalRound.classList.add("hidden");
   const valuationBefore = game.valuation;
 
   // Step 1: the bubble meter fills right to the top, red and shaking
@@ -848,8 +862,9 @@ async function popTheBubble(reason) {
   await new Promise(done => {
     function step(now) {
       const t = Math.min(1, (now - start) / dropTime);
-      const value = valuationBefore * Math.pow(1 - t, 3);     // fast at first, slowing into zero
-      page.crashNumber.textContent = formatMoney(t === 1 ? 0 : value);
+      const value = valuationBefore * (1 - t);                // a constant rate all the way down to $0
+      // (under $1B it keeps counting in billions, $0.9B ... $0.1B, so the units don't switch and seem to speed it up)
+      page.crashNumber.textContent = t === 1 ? "$0" : value >= 1e9 ? formatMoney(value) : "$" + (value / 1e9).toFixed(1) + "B";
       if (t < 1) requestAnimationFrame(step); else done();
     }
     requestAnimationFrame(step);
@@ -889,12 +904,127 @@ function addBursts(howMany) {
 
 
 // ---------------------------------------------------------------------
+//  Final round: Cash Out or Double Down (offered at $500B and up)
+// ---------------------------------------------------------------------
+// The final round nudges players to double down:
+//   - Double Down is huge; Cash Out is a small link
+//   - the odds are hidden (they're shown on the end screen)
+//   - a real number from this machine's history: how many players doubled down
+//   - a countdown. If it runs out, the game doubles down for you.
+let decisionCountdown = null;   // the final-round timer, while it's running
+
+function showFinalRound() {
+  hideNewsCard();
+  game.doubleDownOdds = doubleDownOdds(game);   // saved for the reveal on the end screen
+  page.spinControls.classList.add("hidden");
+  page.finalRound.classList.remove("hidden");
+  page.finalPitch.textContent = `You finished at ${formatMoney(game.valuation)}, past the ${formatMoney(SETTINGS.doubleDownAt)} line. Take your $1 back, or risk it for $5.`;
+  page.socialProof.textContent = socialProofText();
+  setHeadline("Final round. Investors are waiting.", "good");
+  setMessage("Ride the bubble one more time?", "win");
+  Sound.chaChing();
+  startDecisionCountdown();
+}
+
+function startDecisionCountdown() {
+  let secondsLeft = SETTINGS.decisionSeconds;
+  page.decisionTimer.style.animationDuration = secondsLeft + "s";
+  replayAnimation(page.decisionTimer, "running");
+
+  const tick = () => {
+    page.decisionNote.textContent = `Your board doubles down for you in ${secondsLeft}...`;
+    if (secondsLeft <= 3) Sound.reelStops();
+    if (secondsLeft === 0) { stopDecisionCountdown(); doubleDown(true); return; }
+    secondsLeft -= 1;
+  };
+  tick();
+  decisionCountdown = setInterval(tick, 1000);
+}
+
+function stopDecisionCountdown() {
+  clearInterval(decisionCountdown);
+  decisionCountdown = null;
+}
+
+// The decision log: a real tally of what players chose on this machine.
+// It's kept in this browser, so it builds up over the day on the gallery laptop.
+const LOG_KEY = "aiBubbleTrouble.decisions";
+
+function readLog() {
+  try { return JSON.parse(localStorage.getItem(LOG_KEY)) || { doubled: 0, cashed: 0 }; }
+  catch (e) { return { doubled: 0, cashed: 0 }; }
+}
+
+function recordDecision(choice) {
+  const log = readLog();
+  log[choice] += 1;
+  try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch (e) { /* storage not available: skip */ }
+}
+
+// Only shows a number once there's enough real history to be honest about it
+function socialProofText() {
+  const log = readLog();
+  const total = log.doubled + log.cashed;
+  if (total < 5) return "";
+  return `${Math.round((log.doubled / total) * 100)}% of investors on this machine doubled down`;
+}
+
+async function cashOut() {
+  if (!game || game.status !== "finalRound") return;
+  stopDecisionCountdown();
+  recordDecision("cashed");
+  game.status = "cashedOut";
+  page.finalRound.classList.add("hidden");
+  Sound.chaChing();
+  await wait(1400);
+  showEndScreen("won1", "You cashed out before the bubble burst. Smart money.");
+}
+
+// timedOut = true when the countdown ran out and the game chose for the player
+async function doubleDown(timedOut = false) {
+  if (!game || game.status !== "finalRound") return;
+  stopDecisionCountdown();
+  recordDecision("doubled");
+  game.timedOut = timedOut === true;
+  page.finalRound.classList.add("hidden");
+  document.body.classList.add("critical");
+  setHeadline(game.timedOut ? "Time's up. Your board went all in." : "All in. One more spin.", "bad");
+  setMessage("Doubling down...");
+
+  // Win = the grid fills with the jackpot CEO, with WILDs across the middle.
+  // Lose = the whole grid fills with BREAKING NEWS.
+  const won = rollDoubleDown(game);
+  const best = CHARACTERS.reduce((a, b) => (b.pays[5] > a.pays[5] ? b : a));
+  const grid = page.reels.map((reel, i) => [0, 1, 2].map(row => {
+    if (!won) return NEWS_SYMBOL;
+    return row === 1 && WILD.reels.includes(i) ? WILD : best;
+  }));
+  clearWins();
+  newsMood = won ? null : false;   // a lost Double Down is a grid of red (bad) NEWS symbols, never green
+  await spinAllReels(grid, 1800, 650, 100, 1, false);    // extra slow for the big moment, and it can't be skipped
+
+  if (won) {
+    highlightCells(allCells(), "win");
+    game.valuation *= 2;
+    showGoalMeter();                                     // the meter jumps: the jackpot doubles the valuation
+    setMessage("💎 THE BUBBLE HOLDS! JACKPOT! 💎", "win big");
+    Sound.chaChing();
+    await wait(2600);
+    showEndScreen("won5");
+  } else {
+    highlightCells(allCells(), "hit");
+    popTheBubble("You doubled down and the bubble burst. Everything is gone.");
+  }
+}
+
+
+// ---------------------------------------------------------------------
 //  End screen and reset
 //  result: "won5", "won1" or "lost"
 // ---------------------------------------------------------------------
 function showEndScreen(result, reason = "") {
   if (result === "lost") Sound.sadSong();   // the sad song plays whenever the player loses
-  if (result === "won5") Sound.moneySong(); // the money song plays when the player hits $1 trillion
+  if (result === "won5") Sound.moneySong(); // the money song plays when the player wins the $5
   page.flood.classList.remove("show");
   hideNewsCard();
   Sound.stopMusic();
@@ -912,13 +1042,15 @@ function showEndScreen(result, reason = "") {
   if (result === "won5") {
     page.endIcon.textContent = "💎";
     page.endTitle.textContent = "You won $5!";
-    page.endText.textContent = "You rode the hype all the way to $1 trillion. Legendary timing.";
-    page.ticket.innerHTML = makeTicket(5, "Hit $1 trillion");
+    const doubled = game.status === "doubleWon";
+    page.endText.textContent = doubled ? "You doubled down and the bubble held. Legendary timing."
+                                       : "You rode the hype past $1 trillion. Legendary timing.";
+    page.ticket.innerHTML = makeTicket(5, doubled ? "Doubled down" : "Hit $1 trillion");
   } else if (result === "won1") {
     page.endIcon.textContent = "💵";
     page.endTitle.textContent = "You got your $1 back";
-    page.endText.textContent = "You finished above break-even, but the $5 needed $1 trillion.";
-    page.ticket.innerHTML = makeTicket(1, "Broke even");
+    page.endText.textContent = reason;
+    page.ticket.innerHTML = makeTicket(1, game.status === "cashedOut" ? "Cashed out" : "Broke even");
   } else {
     page.endIcon.textContent = "💥";
     page.endTitle.textContent = "You lost your dollar";
@@ -933,6 +1065,9 @@ function showEndScreen(result, reason = "") {
 function makeReveal(result) {
   const net = { won5: "+$4", won1: "$0 (you got your dollar back)", lost: "−$1" }[result];
   const row = (label, value) => `<div class="reveal-row"><span>${label}</span><b>${value}</b></div>`;
+  const odds = game.doubleDownOdds !== undefined
+    ? row("Your Double Down odds", Math.round(game.doubleDownOdds * 100) + "%" + (game.timedOut ? " (the timer chose for you)" : ""))
+    : "";
   return `
     <div class="reveal-title">What really happened</div>
     ${row("Wins celebrated", game.winsSeen)}
@@ -940,6 +1075,7 @@ function makeReveal(result) {
     ${row("Compute bills paid", formatMoney(game.billsPaid))}
     ${row("Spins above break-even", `${game.spinsAboveStart} of ${game.spinsPlayed}`)}
     ${row("Peak valuation", formatMoney(game.peakValuation))}
+    ${odds}
     ${row("Your result", net)}`;
 }
 
@@ -959,6 +1095,8 @@ function makeTicket(dollars, how) {
 }
 
 function resetToStart() {
+  stopDecisionCountdown();
+  page.finalRound.classList.add("hidden");
   Sound.stopSadSong();
   Sound.stopMoneySong();
   Sound.stopMusic(0);
@@ -990,6 +1128,8 @@ function spinOrHurry() {
   else spin();
 }
 page.spinButton.addEventListener("click", spinOrHurry);
+page.cashOutButton.addEventListener("click", cashOut);
+page.doubleDownButton.addEventListener("click", () => doubleDown(false));
 page.resetButton.addEventListener("click", resetToStart);
 
 page.newsPopup.addEventListener("click", () => closeNewsPopup && closeNewsPopup());

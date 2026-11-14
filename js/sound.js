@@ -24,6 +24,7 @@ const Sound = {
     if (this.playingVoice) { this.playingVoice.pause(); this.playingVoice.currentTime = 0; }
     this.playingVoice = this.voices[file];
     this.playingVoice.currentTime = 0;
+    this.playingVoice.volume = SETTINGS.voiceVolume;   // a third quieter than the raw clips
     this.playingVoice.play().catch(() => {});   // a missing file is fine: no clip
   },
 
@@ -178,6 +179,7 @@ const Sound = {
   music: null,
 
   startMusic() {
+    if (!SETTINGS.backgroundMusic) return;   // music is switched off for now (see settings.js)
     if (!this.music) {
       this.music = new Audio("audio/main-street.mp3");
       this.music.loop = true;

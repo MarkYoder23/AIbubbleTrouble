@@ -107,7 +107,7 @@ body { font-synthesis: none; }
 .tagline     { margin: 10px 0 22px; font-family: var(--serif); font-size: 1.25rem; }
 .rules-title { margin-bottom: 10px; font-family: var(--sans); font-size: 0.9rem; letter-spacing: 3px; text-transform: uppercase; }
 .rules {
-  margin-bottom: 14px;
+  margin-bottom: 32px;                  /* air between the rules and HOW YOU GET PAID */
   padding: 4px 0 4px 40px;
   text-align: left;
   font-size: 1.1rem;
@@ -116,7 +116,7 @@ body { font-synthesis: none; }
 .rules li { margin: 5px 0; }
 /* The three ways a game can end, and what each one pays */
 .payouts { width: 100%; margin: 0 0 18px; border-collapse: collapse; font-size: 1.05rem; text-align: left; }
-.payouts th { padding: 0 0 4px; font-weight: 400; font-size: 0.8rem; letter-spacing: 3px; text-align: center; }
+.payouts th { padding: 0 0 8px; font-weight: 400; font-size: 0.9rem; letter-spacing: 3px; text-align: center; text-transform: uppercase; }   /* the same size as HOW TO PLAY */
 .payouts td { padding: 7px 10px; border: 2px solid currentColor; }
 .payouts td:last-child { text-align: right; white-space: nowrap; }
 .payouts .win  td:last-child { color: var(--up); }
@@ -154,6 +154,26 @@ body:has(#startScreen.active) { background: #1d2a33; }
 #startScreen .panel { color: var(--white); background: none; text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.9); }   /* drop shadow so the small text reads over the video */
 #startScreen .btn { text-shadow: none; }
 #startScreen .logo { text-shadow: 3px 4px 0 var(--black), 0 4px 18px rgba(0, 0, 0, 0.7); }   /* black drop shadow over the video */
+/* The title is huge on the intro: it grows with the screen's width and height, and is allowed
+   to be wider than the rules panel under it */
+#startScreen .logo {
+  width: calc(100% + 160px);
+  max-width: 96vw;
+  margin: 0 0 0 -80px;
+  font-size: clamp(3rem, min(9.6vw, 14.5vh), 8rem);
+  line-height: 0.95;
+}
+/* Shorter screens (a laptop's 720p): the same content, a little tighter, so the intro still fits */
+@media (max-height: 800px) {
+  #startScreen .panel   { padding-top: 8px; padding-bottom: 8px; }
+  #startScreen .tagline { margin: 4px 0 10px; font-size: 1.1rem; }
+  #startScreen .rules-title { margin-bottom: 4px; }
+  #startScreen .rules   { margin-bottom: 20px; padding-top: 0; padding-bottom: 0; font-size: 1rem; line-height: 1.25; }
+  #startScreen .rules li { margin: 2px 0; }
+  #startScreen .payouts { margin-bottom: 10px; font-size: 0.95rem; }
+  #startScreen .payouts td { padding: 4px 10px; }
+  #startScreen .checkbox { margin-bottom: 12px; }
+}
 #startScreen .logo span { color: var(--white); background: none; padding: 0; }
 #startScreen .checkbox .box { border-color: var(--white); }
 #startScreen .checkbox input:checked + .box { background: var(--white); }
@@ -301,7 +321,7 @@ body:has(#gameScreen.active) {
 .bubble-meter { right: calc(100% + 78px); }   /* 78px of space between the reels and each meter */
 .goal-meter   { left:  calc(100% + 78px); }
 .meter-label { padding: 2px 6px; font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; background: var(--black); }
-.meter-value { padding: 2px 6px; font-size: 1.15rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; background: var(--black); }
+.meter-value { padding: 2px 6px; font-size: 1.9rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; background: var(--black); }
 .meter-track {
   position: relative;
   flex: 1;
@@ -320,6 +340,10 @@ body:has(#gameScreen.active) {
 }
 .goal-meter .meter-fill { background: var(--up); }   /* the valuation bar is always green */
 /* JACKPOT, written across the top of the valuation meter */
+
+/* The BREAK EVEN line, halfway up the valuation meter */
+.goal-line { position: absolute; left: -8px; right: -8px; bottom: 50%; border-top: 3px dashed var(--white); }
+/* JACKPOT, written across the top of the valuation meter ($1 trillion) */
 .jackpot-mark {
   position: absolute;
   top: 4px;
@@ -332,10 +356,8 @@ body:has(#gameScreen.active) {
   text-transform: uppercase;
   text-align: center;
   color: var(--white);
-  mix-blend-mode: difference;   /* stays readable when the white bar rises behind it */
+  mix-blend-mode: difference;   /* stays readable when the bar rises behind it */
 }
-/* The BREAK EVEN line, halfway up the valuation meter */
-.goal-line { position: absolute; left: -8px; right: -8px; bottom: 50%; border-top: 3px dashed var(--white); }
 .goal-line span {
   position: absolute;
   left: calc(100% + 4px);
@@ -404,7 +426,7 @@ body:has(#gameScreen.active) {
 
 /* Winning symbols get a thick black frame, NEWS symbols flash */
 /* Winning and NEWS symbols stay still (no bobbing or pulsing) */
-.symbol.hit  { opacity: 0.35; transition: opacity 0.4s; }   /* the grid fades when Double Down loses */
+/* (When Double Down loses, the whole grid is red NEWS symbols. They stay solid, not faded, until the red flood covers them.) */
 
 /* Message under the reels */
 .message {
@@ -697,7 +719,7 @@ body:has(#gameScreen.active) {
 
 /* Final round */
 .final-round {
-  z-index: 7;
+  z-index: 70;                          /* in front of the floating win cash and the news card */
   width: min(760px, 92%);
   padding: 26px 24px;
   animation: slam-center 0.4s ease-out;
@@ -723,19 +745,19 @@ body:has(#gameScreen.active) {
 .decision-timer div.running { animation: countdown linear forwards; }
 .decision-note { margin-top: 6px; font-family: var(--sans); font-size: 0.95rem; }
 
-/* Cash Out: small, grey and easy to miss */
+/* Cash Out: a clear, boxed button (but still smaller than the huge Double Down) */
 .cash-out-link {
-  margin-top: 14px;
-  padding: 4px 8px;
+  margin-top: 18px;
+  padding: 10px 20px;
   font-family: var(--sans);
-  font-size: 0.9rem;
-  color: var(--gray);
+  font-size: 1.6rem;
+  color: var(--black);
   text-decoration: underline;
   background: none;
-  border: none;
+  border: 3px solid var(--black);
   cursor: pointer;
 }
-.cash-out-link:hover { color: var(--black); }
+.cash-out-link:hover { color: var(--white); background: var(--black); }
 
 /* WIN / BIG WIN / MEGA WIN / AGI ACHIEVED banner over the reels */
 .win-banner {

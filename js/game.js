@@ -9,7 +9,8 @@
 //
 //  game.status can be:
 //    "playing"     still spinning
-//    "jackpot"     out of spins at $1 trillion or more (wins $5)
+//    "jackpot"     out of spins at $1 trillion or more (wins $5, no gamble; rare)
+//    "finalRound"  out of spins at $500B or more (Double Down or take the $1 back)
 //    "brokeEven"   out of spins at/above the starting valuation (gets the $1 back)
 //    "belowStart"  out of spins but below the starting valuation (lost)
 //    "popped"      the bubble burst (lost)
@@ -22,7 +23,24 @@
 
 // Start a fresh game
 function newGame() {
+  // Hidden from the player: almost every game has a ceiling just under $1 trillion. The
+  // closer the valuation gets to it, the less each win adds (see softAdd), so most big games
+  // finish "just shy" and get the Double Down offer. Only a rare game (jackpotChance) has no
+  // ceiling, and only that game can pass $1 trillion.
+  const noCeiling = Math.random() < SETTINGS.jackpotChance;
+  const ceilingShare = SETTINGS.ceilingLow + Math.random() * (SETTINGS.ceilingHigh - SETTINGS.ceilingLow);
+  // Also hidden: where this game is "meant" to finish. The valuation is steered along a smooth pace
+  // line from the start to this target (see paceLine / paceFactor), so the climb is gradual
+  // instead of spiking early and then hitting the ceiling. Most games aim for the $600B-$900B
+  // sweet spot (the Double Down); some aim lower; the rare jackpot game aims just past $1T.
+  const lerp = (low, high) => low + Math.random() * (high - low);
+  let target;
+  if (noCeiling) target = lerp(SETTINGS.jackpotTargetLow, SETTINGS.jackpotTargetHigh);
+  else if (Math.random() < SETTINGS.lowFinishChance) target = lerp(SETTINGS.lowFinishLow, SETTINGS.lowFinishHigh);
+  else target = lerp(SETTINGS.paceLow, SETTINGS.paceHigh);
   return {
+    target,
+    ceiling: noCeiling ? Infinity : SETTINGS.jackpotAt * ceilingShare,
     valuation: SETTINGS.startingValuation,
     peakValuation: SETTINGS.startingValuation,
     lastWin: 0,             // the last spin's win, before the compute bill (for the WIN box)
@@ -151,13 +169,40 @@ function findNews(grid) {
 }
 
 
+// The hidden pace line: where the valuation "should" be right now, growing at a steady rate
+// from the starting valuation to this game's target by the last spin.
+function paceLine(game) {
+  const total = game.spinsPlayed + game.spinsLeft;
+  const progress = Math.pow(total > 0 ? game.spinsPlayed / total : 1, SETTINGS.paceCurve);
+  const line = SETTINGS.startingValuation * Math.pow(game.target / SETTINGS.startingValuation, progress);
+  // The Jensen spy story always knocks 40% off near the end, so until it lands the line runs a bit
+  // higher; the last spins then climb back toward the target.
+  const lift = 1 + (SETTINGS.paceSpyLift - 1) * progress ** 3;   // (it builds up late, so the early climb stays gentle)
+  return game.spyStoryShown ? line : line * lift;
+}
+
+// How far ahead of the pace line the game is (1 = on the line, 1.5 = 50% ahead)
+function paceRatio(game) {
+  return game.valuation / paceLine(game);
+}
+
+// Wins get a boost when the game has fallen behind the pace line (1 = no boost). Ahead of it,
+// wins are held back by pathRoom instead (see playSpin).
+function paceFactor(game) {
+  const factor = Math.pow(paceRatio(game), -SETTINGS.paceStrength);
+  return Math.min(SETTINGS.paceMax, Math.max(1, factor));
+}
+
+
 // The chance a news event is good. Always good during the hot start,
 // then it sours with every spin and as the bubble grows.
 function goodNewsChance(game) {
   if (isHotStart(game)) return 1;
   const spinsSince = game.spinsPlayed - SETTINGS.hotStartSpins - 1;
   const chance = SETTINGS.goodNewsChance - spinsSince * SETTINGS.newsSoursPerSpin - game.bubble / 250;
-  return Math.max(SETTINGS.lowestGoodNews, chance);
+  // A light touch: ahead of the pace line, bad news is a little more likely (a dip); behind it, good news is.
+  const swing = Math.min(SETTINGS.paceNewsSwing, Math.max(-SETTINGS.paceNewsSwing, (1 - paceRatio(game)) * 0.5));
+  return Math.min(0.95, Math.max(SETTINGS.lowestGoodNews, chance + swing));
 }
 
 // All the stories (good and bad) in date order, so each one has a place on the game's timeline:
@@ -185,9 +230,32 @@ function pickNewsEvent(game) {
 }
 
 
+// Add money to the valuation. Far below this game's hidden ceiling the full amount is added. Once
+// the valuation is past the "knee" (a share of the ceiling, SETTINGS.ceilingKnee), the closer it
+// gets to the ceiling the less of each win counts, so it creeps up toward the ceiling and (almost)
+// never passes it. Nothing ever jumps or resets. A game with no ceiling (the rare jackpot game,
+// see newGame) adds the full amount.
+function softAdd(valuation, amount, ceiling) {
+  if (amount <= 0 || ceiling === Infinity) return valuation + amount;
+  const knee = ceiling * SETTINGS.ceilingKnee;
+  let value = valuation;
+  let left = amount;
+  if (value < knee) {                       // the part below the knee counts in full
+    const free = Math.min(left, knee - value);
+    value += free;
+    left -= free;
+  }
+  if (left <= 0) return value;
+  const room = ceiling - value;             // above the knee: each win only fills part of the room that's left
+  if (room <= 0) return value;
+  return ceiling - room * Math.exp(-left / room);
+}
+
+
 // Apply a news event's three numbers (see news-events.js)
 function applyNews(game, news) {
-  game.valuation *= 1 + (news.valuation || 0) / 100;
+  const change = game.valuation * (news.valuation || 0) / 100;
+  game.valuation = softAdd(game.valuation, change, game.ceiling);   // (bad news just subtracts)
   game.bubble += news.bubble || 0;
   if (news.spins > 0) addBonusSpins(game, news.spins);
   if (news.spins < 0) game.spinsLeft += news.spins;
@@ -229,12 +297,14 @@ function playSpin(game) {
   // 2. NEWS happens first. One event per spin, however many NEWS symbols land.
   const newsCells = findNews(grid);
   let news = null;
+  let newsGain = 0;
   if (newsCells.length > 0) {
     news = spyTime ? { ...SPY_STORY, isGood: false } : pickNewsEvent(game);
     if (spyTime) game.spyStoryShown = true;
     const before = game.valuation;
     applyNews(game, news);
-    game.totalRaised += Math.max(0, game.valuation - before);   // good news counts as "raised"
+    newsGain = Math.max(0, game.valuation - before);
+    game.totalRaised += newsGain;   // good news counts as "raised"
   }
   const valuationAfterNews = game.valuation;
 
@@ -257,18 +327,36 @@ function playSpin(game) {
     bonusSpins = addBonusSpins(game, gotFive ? SETTINGS.bonusSpinsForFive : SETTINGS.bonusSpinsForWin);
     game.winsSeen += 1;
   }
-  const winAmount = game.valuation * totalGain;
+  // The money a win adds is steered by the pace line (it can't run far ahead of it), then capped so one spin can't add more than
+  // maxSpinGain of where the spin started (good news already used part of that). The bubble below
+  // still grows from totalGain alone.
+  const gainRoom = Math.max(0, SETTINGS.maxSpinGain * valuationBefore - newsGain);
+  // A win can only lift the valuation up to a little above the pace line (paceSlack). Past that it
+  // still adds a sliver (paceMin of its normal size) so the numbers never freeze.
+  const normalWin = game.valuation * totalGain * SETTINGS.winPayScale;
+  const sliver = Math.min(normalWin * SETTINGS.paceMin, game.valuation * SETTINGS.paceSliverMax);
+  const pathRoom = Math.max(paceLine(game) * (1 + SETTINGS.paceSlack) - game.valuation, sliver);
+  // Behind the line, a winning spin also closes part of the gap (paceCatchUp), so one lucky line gets you back on track.
+  const catchUp = lineWins.length > 0 ? Math.max(0, paceLine(game) - game.valuation) * SETTINGS.paceCatchUp : 0;
+  const bigWin = Math.min(Math.max(normalWin * paceFactor(game), catchUp), pathRoom, gainRoom);
+  // A winning spin never loses money: the win always at least covers that spin's compute bill, so on
+  // a win the valuation only goes up (it goes down only on a spin with no match, or bad news).
+  const covered = lineWins.length > 0 ? Math.max(bigWin, bill) : bigWin;
+  const winAmount = softAdd(game.valuation, covered, game.ceiling) - game.valuation;   // what really gets added
   game.valuation += winAmount;
   game.totalRaised += winAmount;
 
   // 5. Success inflates the bubble: the bigger the win, the more it grows
-  game.bubble += SETTINGS.bubbleGrowthPerSpin + totalGain * SETTINGS.bubblePerWin;
+  //    Every spin adds a little, every winning spin adds a flat bump plus more for a bigger win.
+  //    (Good news adds to the bubble too: see news-events.js.)
+  const winBump = lineWins.length > 0 ? SETTINGS.bubblePerWinningSpin : 0;
+  game.bubble += SETTINGS.bubbleGrowthPerSpin + winBump + totalGain * SETTINGS.bubblePerWin;
 
   // 6. Keep numbers in range and keep score for the end screen
   game.spinsLeft = Math.max(0, game.spinsLeft);
   game.bubble = Math.min(100, game.bubble);
   game.peakValuation = Math.max(game.peakValuation, game.valuation);
-  game.lastWin = winAmount;
+  game.lastWin = lineWins.length > 0 ? Math.max(0, game.valuation - valuationAfterNews) : 0;   // the win net of the bill
   if (game.valuation >= SETTINGS.startingValuation) game.spinsAboveStart += 1;
 
   // 7. Did the game end?
@@ -277,7 +365,8 @@ function playSpin(game) {
   // netChange: how much the valuation really changed this spin (often negative, even with a win)
   const netChange = game.valuation / valuationBefore - 1;
   const streak = game.streak;
-  return { grid, news, newsCells, valuationAfterNews, lineWins, winAmount, bill, totalGain, netChange, bonusSpins, streak };
+  const netWin = lineWins.length > 0 ? Math.max(0, game.valuation - valuationAfterNews) : 0;   // what a win really adds, after the bill
+  return { grid, news, newsCells, valuationAfterNews, lineWins, winAmount, netWin, bill, totalGain, netChange, bonusSpins, streak };
 }
 
 
@@ -293,8 +382,27 @@ function checkStatus(game) {
   if (game.valuation < SETTINGS.bankruptBelow) return "bankrupt";
   if (game.spinsLeft > 0) return "playing";
   if (game.valuation >= SETTINGS.jackpotAt) return "jackpot";
+  if (game.valuation >= SETTINGS.doubleDownAt) return "finalRound";
   if (game.valuation >= SETTINGS.startingValuation) return "brokeEven";
   return "belowStart";
+}
+
+
+// The chance that Double Down wins. It is hidden from the player until the end screen.
+// It starts at doubleDownMinOdds at $500B and gets a little better each time the
+// valuation doubles from there, up to doubleDownMaxOdds.
+function doubleDownOdds(game) {
+  const timesDoubled = Math.log2(Math.max(1, game.valuation / SETTINGS.doubleDownAt));
+  const odds = SETTINGS.doubleDownMinOdds + SETTINGS.doubleDownOddsPerDoubling * timesDoubled;
+  return Math.min(SETTINGS.doubleDownMaxOdds, odds);
+}
+
+
+// Roll the Double Down. Returns true if the player won.
+function rollDoubleDown(game) {
+  const won = Math.random() < doubleDownOdds(game);
+  game.status = won ? "doubleWon" : "doubleLost";
+  return won;
 }
 
 
